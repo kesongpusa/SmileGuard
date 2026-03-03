@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, SafeAreaView, Modal } from "react-native";
-import { saveAppointment, Appointment } from "../../lib/database";
-import { getBookedSlots, bookSlot, checkDayFull, cancelAppointment } from "../../lib/appointmentService";
+import { saveAppointment, Appointment } from "../../lib/database.ts";
+import { getBookedSlots, checkDayFull } from "../../lib/appointmentService.ts";
 
 // Available services
 const SERVICES = [
