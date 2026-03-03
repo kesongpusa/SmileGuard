@@ -1,4 +1,243 @@
-To Future Kyler: 
->>Add THis C:\Users\PerezKylerLee(Studen\AppData\Local\Android\Sdk
-for android since wala pa 
+add npm install @react-navigation/drawer
+----- for the dashboard
 
+📌 PRIORITY
+
+- [] TRAIN MODEL
+
+📌 SUGGESTIONS BY SER CHE
+
+- [] Develop AI-driven anomaly detection for dental images:
+    - Detect cavities, cracks, discoloration, gingivitis, mouth ulcers, lesions, and inflammation.
+    - Highlight affected areas with markers (e.g., crosshair/green target).
+    - Provide AI-driven analysis output that identifies issues clearly.
+- [] Ensure the AI captures both top and bottom teeth images, including incisors.
+- [] Train the AI to act like a “first doctor”—preliminary screening before the dentist.
+- [] Use cellphone BACK camera for capturing mouth images → upload → AI analyzes.
+- [] Implement a retake mechanism (like Shopee’s live feedback) if images are unclear.
+- [] Generate suggestive outputs (e.g., “possible gingivitis,” “needs cleaning”) for:
+    - Dentist (to prepare before appointment).
+    - Patient (to understand condition before visiting clinic).
+- [] Detect if a tooth has been extracted (“nabunutan”) and reflect that in analysis.
+- [] Provide real-time or near real-time feedback where possible.
+- [] Integrate with appointment scheduling:
+    - Payment modes and discounts (PWD, senior citizen).
+        - Allow upload of proof documents (e.g., PWD/senior ID) → automatic discount application.
+- [] Ensure dentist sees patient history and AI suggestions before consultation.
+- [] Decide on backend: Firebase or MongoDB (both acceptable).
+- [] Implement double database setup:
+    - Cloud database (Firebase/MongoDB).
+    - Local backup database for offline use when internet is down.
+    - Sync mechanism: transactions saved locally → auto-update to cloud once reconnected.
+- [] Handle transaction errors (e.g., “transaction not completed” when internet drops).
+- [] Ensure real-time syncing between local and cloud when connection resumes.
+
+📌 Deliverables & Deadlines
+
+- Terminal system must be ready before defense.
+- At least two objectives accomplished before defense.
+- Prepare a consultation form documenting progress and features.
+- Prioritize hard parts first (AI detection, appointment/payment integration).
+- Next week: show consultation form and progress on cleaning module.
+
+📌 APP 
+
+- [x] SmileGuard Doctor Dashboard > _docDashboard
+    - [x] add npm install @react-navigation/drawer
+- [x] Footer Component > _Footer.txt
+- [x] How It Works Section > _HowItWorks //Splash Screen 
+- [x] Main App Layout > _layout
+- [x] SmileGuard Patient Dashboard > _patientDashboard
+- [] Welcome Page 
+    - [] Sign In //di pa kuan
+    - [] Sign Up //di pa kuan
+    - [] Verification Page 
+- [] On-Boarding Wizard (Training Module)
+
+===== F R O N T E N D =====
+
+📌 ##FOR DENTIST##
+
+- [] Dentist Profile Setup 
+- [] Clinic Set up 
+- [] Set Appointment Rules
+    - [] Appointment Page 
+    - [] Cancellation Settings Policy 
+        - [] Cancellation Window 
+        - [] Fee Amount 
+        - [] Toggle Grace Period 
+        - [] First-Time Cancellation Free 
+        - [] Current Policy
+    - [] Reschedule Rules 
+    - [] No-Show Penalty
+- [] Review Dentist and Clinic Information
+- [] “Your Schedule” Page 
+    - [] Daily Time Block 
+    - [] Schedule Overview 
+    - [] Add Slot
+        - [] Slot Name
+        - [] Color Organizer 
+        - [] Show Day and Time 
+        - [] Minimum Lead Time (Hours) 
+        - [] Buffer Time (Minutes) 
+        - [] Save Button 
+    - [] Blocked Slot 
+    - [] Edit Slot
+    - [] Delete Slot
+    - [] Daily or Weekly Schedule
+
+- [] Clinic Homepage Dashboard FOR DENTIST
+    - [] Patients Module
+        - [] Add New Patient  
+    - [] Filter
+        - [] Name A-Z, Z-A 
+        - [] Treatment Type
+        - [] Status
+    - [] View Record Button //directs to Patient Profile
+        - [] Patient Profile Page 
+            -[] Patient Name
+            -[] Show Status 
+            - [] Overview tab 
+                - [] Appointments Lists 
+                - [] Notes Displays 
+        - [] Treatment Overview Page 
+            - [] Ongoing Treatments 
+            - [] Completed Procedures 
+            - [] Pending Recommendations 
+        - [] Billing Page
+            - [] Insurance Information 
+            - [] Transaction History  
+            - [] Confirm incoming payments (??)
+        - [] Documents Page
+            - [] Radiographs & Photos 
+            - [] Analyzed Radiographs & Photos
+            - [] Consent Forms
+        - [] Generate Referral Code //if no existing account
+            //mark code as used/expired
+        
+    - [] Appointment Module
+        - [] Notification Page
+        - [] Add Appointment Schedule 
+        - [] Sorting Date 
+        - [] Show Upcoming Appointed Schedule 
+        - [] Show Future Appointed Schedule 
+
+    - [] Analyze Module
+    - [] Settings Module
+
+
+ 
+- [] Appointments Page
+    - [] Today’s Appointments
+    - [] Upcoming Slots
+    - [] Add Appointment Schedule 
+    - [] Calendar View
+    - [] Search Patient 
+    - [] Update Appointment Status
+- [] Image Analyzer Page
+    - [] Action Buttons
+        - [] Upload Image
+        - [] Analyze Now
+        - [] View History 
+    - [] Recent Image Analyses
+    - [] Detection Trends 
+    - [] Tabs: 
+        - [] All Displays 
+        - [] Analyzed Photos
+        - [] Pending Lists
+        - [] Flagged Contains
+        - [] Patient’s Image Analyzer
+            //image tab
+            - [] Detection Summary 
+            - [] Image Comparison 
+            - [] Add Clinical Notes
+            - [] Record Integration
+            //Details Tab
+            - [] Image Display Panel 
+            - [] Descriptive Analytics
+            - [] Summary Tab
+                //concise overview of the AI-detected anomaly, including diagnostic details, clinician actions, and 	note-taking functionality
+            - [] History Tab
+                //chronological record of past detections for the selected patient, helping clinicians track diagnostic trends over time
+- [] Settings Page //manage their personal profile, clinic information, system preferences, and support options
+
+📌 ##FOR ASSISTANT##
+
+- [] Can do whatever dentist can do but depends on what's allowed by the dentist
+
+📌 ##FOR PATIENT##
+
+-[] Sign-In as Patient
+-[] Sign-Up Page 
+-[] Verification Page 
+-[] Enter Referral Code //Patients input the assigned referral code to connect with the clinic. 
+    -[] Displays clinic overview
+-[] Patient Homepage 
+    -[] Appointment Module
+        -[] Book an Appointment 
+            -[] Choose Service 
+            -[] Choose Available Time Slot 
+            -[] Put Notes or Request 
+            -[] Confirm Appointment 
+        -[] Show Current Appointment
+        -[] Appointment Details/Summary 
+            -[] Reschedule
+            -[] Cancel Appointment
+            //the system displays a policy reminder outlining the clinic’s cancellation rules and conditions.
+            //MAY INCUR FEE
+    -[] Billing Module //CAN MAKE PAYMENT, CAN ADD OPTION IF PWD/SENIOR/WITH INSURANCE
+    -[] Treatment Module
+        -[]Treatment Summary/Details //Displays procedure notes, findings, and treatment outcomes. 
+
+kuan
+
+
+===== 🔐 SECURITY REVIEW FIXES (Code Review — 2026-02-21) =====
+
+📌 CRITICAL — Fix before any production/public deployment
+
+- [] [lib/supabase.ts:8-9] Move Supabase URL + anon key out of source code into
+     environment variables. Use expo-constants + app.json "extra" field sourced
+     from a .env file. Currently the credentials are hardcoded and committed to git.
+     HOW:
+       1. Create .env → SUPABASE_URL=... and SUPABASE_ANON_KEY=...
+       2. In app.json add: "extra": { "supabaseUrl": process.env.SUPABASE_URL, ... }
+       3. In lib/supabase.ts use: Constants.expoConfig?.extra?.supabaseUrl
+
+- [] [components/auth/AuthModal.tsx:244] Replace hardcoded VALID_DOCTOR_CODES array
+     with a Supabase Edge Function call. The codes are embedded in the JS bundle and
+     can be extracted by anyone with a decompiler. The doctor_access_codes DB table
+     already exists — wire it up via an Edge Function.
+     HOW:
+       const { data } = await supabase.functions.invoke("verify-doctor-code", {
+         body: { code: formData.doctorAccessCode },
+       });
+       if (!data?.valid) { /* reject */ }
+
+📌 WARNING — Fix before launch
+
+- [] [hooks/useAuth.ts:12] Add .catch(() => setLoading(false)) to the getSession()
+     call. A network error or storage corruption currently leaves loading=true forever,
+     freezing the app on a blank screen with no feedback.
+
+- [] [hooks/useAuth.ts:50] Replace silent console.error in fetchProfile catch block
+     with user-facing error handling (e.g., show an alert or set an error state).
+
+- [] [components/auth/AuthModal.tsx:199] Persist login lockout state (lockoutUntil,
+     loginAttempts) to AsyncStorage keyed by email. Currently stored in React state —
+     closing/reopening the modal resets it to zero, bypassing the brute-force protection.
+     Alternatively, enable Supabase's built-in Auth rate limiting in the dashboard.
+
+- [] [supabase/setup.sql:319-323] Fix RLS self-referencing subquery in the profiles
+     UPDATE policy WITH CHECK clause. The subquery queries public.profiles while RLS
+     is active on that table, risking recursion. Replace with a SECURITY DEFINER
+     helper function or read role from auth.jwt() -> 'user_metadata' ->> 'role'.
+
+📌 SUGGESTION
+
+- [] [.gitignore:39] Update .gitignore to also ignore plain .env files.
+     Currently only .env*.local is ignored — a standard .env would be committed.
+     Add:
+       .env
+       .env.*
+       !.env.example

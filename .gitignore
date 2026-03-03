@@ -10,6 +10,11 @@ web-build/
 expo-env.d.ts
 
 # Native
+.supabase/
+.venv/
+.idea/
+.vscode/
+*.iml
 .kotlin/
 *.orig.*
 *.jks
@@ -32,6 +37,9 @@ yarn-error.*
 
 # local env files
 .env*.local
+.env
+.env.*
+!.env.example
 
 # typescript
 *.tsbuildinfo
@@ -41,3 +49,4 @@ app-example
 # generated native folders
 /ios
 /android
+eas.json
