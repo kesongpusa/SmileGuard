@@ -10,6 +10,7 @@ import {
   ScrollView,
   Platform,
 } from "react-native";
+import { useAuth } from "../../hooks/useAuth.ts"
 import { SafeAreaView } from "react-native-safe-area-context";
 import Alert from "@blazejkustra/react-native-alert";
 import {
@@ -135,7 +136,7 @@ export default function AuthModal({
 
   // Shorthand to update medical intake fields
   const setIntake = (patch: Partial<MedicalIntake>) =>
-    setFormData((f: FormData) => ({
+    setFormData((f) => ({
       ...f,
       medicalIntake: { ...f.medicalIntake, ...patch },
     }));
@@ -143,7 +144,7 @@ export default function AuthModal({
   // Shorthand to update top-level fields (with sanitisation)
   const setField = (key: keyof FormData, value: string) => {
     // Don't sanitise the password – it may legitimately contain special chars
-    setFormData((f: FormData) => ({
+    setFormData((f) => ({
       ...f,
       [key]: key === "password" ? value : sanitize(value),
     }));
@@ -284,40 +285,7 @@ export default function AuthModal({
         }
       }
     }
-
     setLoading(true);
-
-    try {
-      if (mode === "login") {
-        await performLogin();
-        // Reset attempts on successful login
-        setLoginAttempts(0);
-        setLockoutUntil(null);
-      } else {
-        await performRegister();
-      }
-    } catch (error: any) {
-      if (mode === "login") {
-        const next = loginAttempts + 1;
-        setLoginAttempts(next);
-        if (next >= MAX_LOGIN_ATTEMPTS) {
-          setLockoutUntil(Date.now() + LOCKOUT_DURATION_MS);
-          Alert.alert(
-            "Too Many Attempts",
-            "Your account has been temporarily locked for 5 minutes."
-          );
-          return;
-        }
-        Alert.alert(
-          "Login Failed",
-          `${error.message} (${MAX_LOGIN_ATTEMPTS - next} attempt(s) remaining)`
-        );
-      } else {
-        Alert.alert("Error", error.message);
-      }
-    } finally {
-      setLoading(false);
-    }
   };
 
   const performLogin = async () => {
