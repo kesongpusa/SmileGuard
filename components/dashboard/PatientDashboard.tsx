@@ -10,7 +10,6 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { CurrentUser, Appointment as DbAppointment } from "../../types/index.ts";
-import { Appointment } from "../../lib/database.ts";
 import BookAppointment from "../appointments/BookAppointment.tsx";
 import BillingPayment from "../billing/BillingPayment.tsx";
 
@@ -71,7 +70,7 @@ export default function PatientDashboard({ user, onLogout }: PatientDashboardPro
             {/* Explainable Overlay (Triggered by showAiAnalysis) */}
             {showAiAnalysis && (
               <View style={styles.overlayLayer}>
-                {/* This represents the Python CM Luminosity output */}
+                {/* This represents the YOLOv8s Yield */}
                 <View style={styles.anomalyHighlight} />
               </View>
             )}
@@ -157,7 +156,7 @@ export default function PatientDashboard({ user, onLogout }: PatientDashboardPro
         <BookAppointment
           patientId={user.email}
           dentistId={undefined}
-          onSuccess={() => setShowBookingModal(false)}
+          onSuccess={() => setShowBookingModal(true)}
           onCancel={() => setShowBookingModal(false)}
         />
       </Modal>
@@ -167,7 +166,7 @@ export default function PatientDashboard({ user, onLogout }: PatientDashboardPro
         <BillingPayment
           patientId={user.email}
           baseAmount={300}
-          onSuccess={() => setShowBillingModal(false)}
+          onSuccess={() => setShowBillingModal(true)}
           onCancel={() => setShowBillingModal(false)}
         />
       </Modal>
