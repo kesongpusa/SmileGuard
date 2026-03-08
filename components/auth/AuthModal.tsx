@@ -640,15 +640,6 @@ export default function AuthModal({
                       </Text>
                     </>
                   )}
-
-                  {/* Lockout warning */}
-                  {loginAttempts > 0 && mode === "login" && (
-                    <Text style={styles.warningText}>
-                      ⚠️ {MAX_LOGIN_ATTEMPTS - loginAttempts} login attempt(s) remaining before
-                      temporary lockout.
-                    </Text>
-                  )}
-
                   <TouchableOpacity
                     style={[styles.btn, styles.primaryBtn, { marginTop: 12 }]}
                     onPress={handleFinalize}
