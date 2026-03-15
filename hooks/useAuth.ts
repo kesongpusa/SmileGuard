@@ -104,10 +104,7 @@ export function useAuth() {
     };
   };
 
-  const register = async (
-    formData: FormData,
-    role: "patient" | "doctor"
-  ): Promise<CurrentUser> => {
+  const register = async (formData: FormData,role: "patient" | "doctor"): Promise<CurrentUser> => {
     // Create the auth account in Supabase
     // Pass name, role, service, and medical intake as metadata — the database
     // trigger will automatically create the profile row from this data
@@ -124,14 +121,23 @@ export function useAuth() {
         },
       },
     });
-
+    
     if (error) {
+      console.error("Registration error:", error);
       throw new Error(error.message);
     }
+    
 
     if (!data.user) {
       throw new Error("Registration failed. Please try again.");
     }
+
+    // Log successful registration for debugging
+    console.log("Registration successful. User ID:", data.user.id, "Role:", role);
+    if (role === "patient") {
+      console.log("Medical intake submitted:", formData.medicalIntake);
+    }
+    
 
     return {
       name: formData.name,
