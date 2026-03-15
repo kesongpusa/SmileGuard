@@ -45,13 +45,58 @@ export function useAuth() {
         .eq("id", userId)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        // If profile doesn't exist, try to get user metadata
+        if (error.code === "PGRST116") {
+          console.warn("Profile not found for user:", userId);
+          const { data: { user } } = await supabase.auth.getUser();
+          
+          if (!user || user.id !== userId) {
+            setError("User not found.");
+            setLoading(false);
+            return;
+          }
 
-      setCurrentUser({
-        name: data.name,
-        email: data.email,
-        role: data.role,
-      });
+          const userName = user.user_metadata?.name || user.email?.split("@")[0] || "User";
+          const userRole = user.user_metadata?.role || "patient";
+
+          // Create the profile from user metadata
+          const { error: createError } = await supabase
+            .from("profiles")
+            .insert({
+              id: userId,
+              name: userName,
+              email: user.email || "",
+              role: userRole,
+              service: user.user_metadata?.service || "General",
+            })
+            .single();
+
+          if (createError) {
+            console.error("Error creating profile:", createError);
+            // Don't set error, just try to continue with metadata
+            setCurrentUser({
+              name: userName,
+              email: user.email || "",
+              role: userRole as "patient" | "doctor",
+            });
+          } else {
+            setCurrentUser({
+              name: userName,
+              email: user.email || "",
+              role: userRole as "patient" | "doctor",
+            });
+          }
+        } else {
+          throw error;
+        }
+      } else {
+        setCurrentUser({
+          name: data.name,
+          email: data.email,
+          role: data.role,
+        });
+      }
     } catch (err) {
       // User-facing error handling instead of silent console.error
       const errorMessage = err instanceof Error ? err.message : "Failed to load profile. Please try again.";
@@ -87,7 +132,37 @@ export function useAuth() {
       .eq("id", data.user.id)
       .single();
 
+    // If profile doesn't exist, create it from user metadata
+    if (profileError && profileError.code === "PGRST116") { // No rows found
+      console.warn("Profile not found for user, creating from metadata...");
+      
+      const userName = data.user.user_metadata?.name || email.split("@")[0];
+      const userRole = data.user.user_metadata?.role || role;
+      
+      const { error: createError } = await supabase
+        .from("profiles")
+        .insert({
+          id: data.user.id,
+          name: userName,
+          email: data.user.email,
+          role: userRole,
+          service: data.user.user_metadata?.service || "General",
+        });
+
+      if (createError) {
+        console.error("Error creating profile:", createError);
+        throw new Error("Failed to create user profile. Please try again.");
+      }
+
+      return {
+        name: userName,
+        email: data.user.email || email,
+        role: userRole as "patient" | "doctor",
+      };
+    }
+
     if (profileError) {
+      console.error("Error fetching profile:", profileError);
       throw new Error("Profile not found. Please contact support.");
     }
 
