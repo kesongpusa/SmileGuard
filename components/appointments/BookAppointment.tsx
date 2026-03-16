@@ -1,22 +1,24 @@
+/* eslint-disable react/react-in-jsx-scope */
 import React, { useState, useEffect } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, SafeAreaView, Modal, ActivityIndicator } from "react-native";
+import {
+  View, Text, TextInput, TouchableOpacity, StyleSheet,
+  ScrollView, Alert, SafeAreaView, ActivityIndicator
+} from "react-native";
 import { saveAppointment, Appointment } from "../../lib/database.ts";
-import { getBookedSlots, checkDayFull, getAllBlockedSlots, isSlotTaken, BlockedSlot } from "../../lib/appointmentService.ts";
+import { getAllBlockedSlots, BlockedSlot } from "../../lib/appointmentService.ts";
 
-// Available services
 const SERVICES = [
-  { id: "cleaning", name: "Cleaning", duration: 30, price: 1500 },
-  { id: "whitening", name: "Whitening", duration: 60, price: 5000 },
-  { id: "fillings", name: "Fillings", duration: 45, price: 2000 },
-  { id: "root-canal", name: "Root Canal", duration: 90, price: 8000 },
-  { id: "extraction", name: "Extraction", duration: 30, price: 1500 },
-  { id: "braces", name: "Braces Consultation", duration: 60, price: 35000 },
-  { id: "implants", name: "Implants Consultation", duration: 60, price: 45000 },
-  { id: "xray", name: "X-Ray", duration: 15, price: 500 },
-  { id: "checkup", name: "Check-up", duration: 20, price: 300 },
+  { id: "cleaning",   name: "Cleaning",               duration: 30,  price: 1500  },
+  { id: "whitening",  name: "Whitening",               duration: 60,  price: 5000  },
+  { id: "fillings",   name: "Fillings",                duration: 45,  price: 2000  },
+  { id: "root-canal", name: "Root Canal",              duration: 90,  price: 8000  },
+  { id: "extraction", name: "Extraction",              duration: 30,  price: 1500  },
+  { id: "braces",     name: "Braces Consultation",     duration: 60,  price: 35000 },
+  { id: "implants",   name: "Implants Consultation",   duration: 60,  price: 45000 },
+  { id: "xray",       name: "X-Ray",                   duration: 15,  price: 500   },
+  { id: "checkup",    name: "Check-up",                duration: 20,  price: 300   },
 ];
 
-// Available time slots
 const TIME_SLOTS = [
   "09:00", "09:30", "10:00", "10:30", "11:00", "11:30",
   "13:00", "13:30", "14:00", "14:30", "15:00", "15:30", "16:00", "16:30",
@@ -36,156 +38,133 @@ export default function BookAppointment({
   onCancel,
 }: BookAppointmentProps) {
   const [selectedService, setSelectedService] = useState<typeof SERVICES[0] | null>(null);
-  const [selectedDate, setSelectedDate] = useState<string>("");
-  const [selectedTime, setSelectedTime] = useState<string>("");
-  const [notes, setNotes] = useState<string>("");
-  const [showTimeModal, setShowTimeModal] = useState(false);
-  const [isBooking, setIsBooking] = useState(false);
-  const [bookedSlots, setBookedSlots] = useState<string[]>([]);
-  const [loadingSlots, setLoadingSlots] = useState(false);
-  const [fullyBookedDates, setFullyBookedDates] = useState<Set<string>>(new Set());
-  const [blockedSlots, setBlockedSlots] = useState<BlockedSlot[]>([]);
+  const [selectedDate, setSelectedDate]       = useState<string>("");
+  const [selectedTime, setSelectedTime]       = useState<string>("");
+  const [notes, setNotes]                     = useState<string>("");
+  const [isBooking, setIsBooking]             = useState(false);
+  const [blockedSlots, setBlockedSlots]       = useState<BlockedSlot[]>([]);
   const [loadingBlockedSlots, setLoadingBlockedSlots] = useState(true);
-  
-  // Fetch all blocked slots on component mount
+  const [fullyBookedDates, setFullyBookedDates]       = useState<Set<string>>(new Set());
+
   useEffect(() => {
     fetchAllBlockedSlots();
   }, []);
 
-  // Fetch all blocked slots from Supabase
   const fetchAllBlockedSlots = async () => {
     setLoadingBlockedSlots(true);
     try {
       const slots = await getAllBlockedSlots();
+      console.log("🔍 [DEBUG] Fetched blocked slots from Supabase:", slots);
+      console.log(`📊 [DEBUG] Total blocked slots: ${slots.length}`);
+
       setBlockedSlots(slots);
+
+      const dateCounts: Record<string, number> = {};
+      for (const slot of slots) {
+        dateCounts[slot.date] = (dateCounts[slot.date] ?? 0) + 1;
+      }
+      console.log("📅 [DEBUG] Booked slots per date:", dateCounts);
+
+      const full = new Set(
+        Object.entries(dateCounts)
+          .filter(([, count]) => count >= TIME_SLOTS.length)
+          .map(([date]) => date)
+      );
+      console.log("🚫 [DEBUG] Fully booked dates:", Array.from(full));
+
+      setFullyBookedDates(full);
     } catch (error) {
-      console.error("Error fetching all blocked slots:", error);
+      console.error("❌ [DEBUG] Error fetching blocked slots:", error);
       setBlockedSlots([]);
     } finally {
       setLoadingBlockedSlots(false);
     }
   };
 
-  // Helper function to check if slot is taken
   const isTaken = (date: string, time: string): boolean => {
-    return isSlotTaken(blockedSlots, date, time);
+    const taken = blockedSlots.some((slot) => slot.date === date && slot.time === time);
+    console.log(`⏰ [DEBUG] Checking slot - Date: ${date}, Time: ${time}, Taken: ${taken}`);
+    return taken;
   };
-  
-  // Generate next 30 days
+
   const availableDates = Array.from({ length: 30 }, (_, i) => {
     const date = new Date();
     date.setDate(date.getDate() + i + 1);
     return date.toISOString().split("T")[0];
   });
 
-  // Get day of week
   const getDayOfWeek = (dateStr: string) => {
     const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
     return days[new Date(dateStr).getDay()];
   };
 
-  // Format date for display
-  const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString("en-US", {
-      weekday: "short",
-      month: "short",
-      day: "numeric",
+  const formatDate = (dateStr: string) =>
+    new Date(dateStr).toLocaleDateString("en-US", {
+      weekday: "short", month: "short", day: "numeric",
     });
-  };
 
-  // Check if slot is available
-  const isSlotAvailable = (time: string): boolean => {
-    if (!selectedDate) return false;
-    return !isTaken(selectedDate, time);
-  };
-
-  // Fetch booked slots for selected date
-  const handleDateSelect = async (date: string) => {
+  const handleDateSelect = (date: string) => {
+    console.log(`📍 [DEBUG] Selected date: ${date}`);
+    console.log(`📍 [DEBUG] Blocked slots for this date:`, blockedSlots.filter(s => s.date === date));
     setSelectedDate(date);
-    setSelectedTime(""); // Reset time when date changes
-    setLoadingSlots(true);
-    
-    try {
-      // We use blocked slots that are already fetched instead of fetching per date
-      // This improves performance and keeps data consistent
-      
-      // Check if this date is fully booked
-      const slotsOnThisDate = blockedSlots.filter(slot => slot.date === date);
-      const dayFull = slotsOnThisDate.length >= TIME_SLOTS.length;
-      if (dayFull) {
-        setFullyBookedDates(prev => new Set([...prev, date]));
-      }
-    } catch (error) {
-      console.error("Error checking date:", error);
-    } finally {
-      setLoadingSlots(false);
-    }
+    setSelectedTime("");
   };
 
-  // Handle booking
   const handleBook = async () => {
-    if (!selectedService) {
-      Alert.alert("Error", "Please select a service.");
-      return;
-    }
-    if (!selectedDate) {
-      Alert.alert("Error", "Please select a date.");
-      return;
-    }
-    if (!selectedTime) {
-      Alert.alert("Error", "Please select a time.");
+    if (!selectedService) { Alert.alert("Error", "Please select a service.");  return; }
+    if (!selectedDate)    { Alert.alert("Error", "Please select a date.");     return; }
+    if (!selectedTime)    { Alert.alert("Error", "Please select a time.");     return; }
+
+    console.log(`✅ [DEBUG] Attempting to book appointment:`);
+    console.log(`   Service: ${selectedService.name}`);
+    console.log(`   Date: ${selectedDate}`);
+    console.log(`   Time: ${selectedTime}`);
+
+    if (isTaken(selectedDate, selectedTime)) {
+      console.warn(`⚠️ [DEBUG] Slot is taken! Aborting booking.`);
+      Alert.alert("Not Available", "This slot was just taken. Please choose another.");
       return;
     }
 
     setIsBooking(true);
-
-    try {
-      // Check availability
-      const available = isSlotAvailable(selectedTime);
-      if (!available) {
-        Alert.alert("Not Available", "This time slot is already booked. Please choose another.");
-        setIsBooking(false);
-        return;
-      }
-
+    try { 
       const appointmentData = {
-        patient_id: patientId,
-        dentist_id: dentistId ?? "",
-        service: selectedService.name,
+        patient_id:       patientId,
+        dentist_id:       dentistId || null,  // FIX: null instead of "" — empty string breaks UUID column
+        service:          selectedService.name,
         appointment_date: selectedDate,
         appointment_time: selectedTime,
-        status: "scheduled" as const,
-        notes: notes,
+        status:           "scheduled" as const,
+        notes,
       };
 
+      console.log(`📤 [DEBUG] Sending appointment data to database:`, appointmentData);
       const result = await saveAppointment(appointmentData);
+      console.log(`📥 [DEBUG] Booking result:`, result);
 
       if (result.success) {
-        // Re-fetch all blocked slots after successful booking
-        await fetchAllBlockedSlots();
-        
+        handleReset();
+        onSuccess?.(result.data as Appointment);
+
         Alert.alert(
           "Appointment Booked!",
-          `Service: ${selectedService.name}\nDate: ${formatDate(selectedDate)}\nTime: ${selectedTime}\n\n${result.offlineId ? "Saved offline. Will sync when connected." : ""}`,
-          [
-            {
-              text: "OK",
-              onPress: () => onSuccess?.(result.data as Appointment),
-            },
-          ]
+          `Service: ${selectedService.name}\nDate: ${formatDate(selectedDate)}\nTime: ${selectedTime}${result.offlineId ? "\n\nSaved offline. Will sync when connected." : ""}`
         );
+
+        console.log(`🔄 [DEBUG] Refreshing blocked slots after successful booking...`);
+        await fetchAllBlockedSlots();
       } else {
+        console.error(`❌ [DEBUG] Booking failed:`, result.error);
         Alert.alert("Booking Failed", result.error || "Please try again.");
       }
-    } catch {
+    } catch (error) {
+      console.error(`❌ [DEBUG] Unexpected error during booking:`, error);
       Alert.alert("Error", "An unexpected error occurred.");
     } finally {
       setIsBooking(false);
     }
   };
 
-  // Reset form
   const handleReset = () => {
     setSelectedService(null);
     setSelectedDate("");
@@ -204,18 +183,10 @@ export default function BookAppointment({
           {SERVICES.map((service) => (
             <TouchableOpacity
               key={service.id}
-              style={[
-                styles.serviceCard,
-                selectedService?.id === service.id && styles.serviceCardSelected,
-              ]}
+              style={[styles.serviceCard, selectedService?.id === service.id && styles.serviceCardSelected]}
               onPress={() => setSelectedService(service)}
             >
-              <Text
-                style={[
-                  styles.serviceName,
-                  selectedService?.id === service.id && styles.serviceNameSelected,
-                ]}
-              >
+              <Text style={[styles.serviceName, selectedService?.id === service.id && styles.serviceNameSelected]}>
                 {service.name}
               </Text>
               <Text style={styles.serviceDuration}>{service.duration} mins</Text>
@@ -226,49 +197,41 @@ export default function BookAppointment({
 
         {/* Date Selection */}
         <Text style={[styles.sectionTitle, !selectedService && styles.disabledText]}>
-          Select Date {!selectedService && '(Choose a service first)'}
+          Select Date {!selectedService && "(Choose a service first)"}
         </Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={[styles.dateScroll, !selectedService && styles.disabledSection]}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={[styles.dateScroll, !selectedService && styles.disabledSection]}
+        >
           {availableDates.map((date) => {
-            const isDateFullyBooked = fullyBookedDates.has(date);
+            const isFull = fullyBookedDates.has(date);
             return (
-            <TouchableOpacity
-              key={date}
-              disabled={!selectedService || isDateFullyBooked}
-              style={[
-                styles.dateCard,
-                selectedDate === date && styles.dateCardSelected,
-                (!selectedService || isDateFullyBooked) && styles.dateCardDisabled,
-              ]}
-              onPress={() => selectedService && !isDateFullyBooked && handleDateSelect(date)}
-            >
-              <Text
+              <TouchableOpacity
+                key={date}
+                disabled={!selectedService || isFull}
                 style={[
-                  styles.dateDay,
-                  selectedDate === date && styles.dateTextSelected,
+                  styles.dateCard,
+                  selectedDate === date && styles.dateCardSelected,
+                  (!selectedService || isFull) && styles.dateCardDisabled,
                 ]}
+                onPress={() => handleDateSelect(date)}
               >
-                {getDayOfWeek(date)}
-              </Text>
-              <Text
-                style={[
-                  styles.dateNumber,
-                  selectedDate === date && styles.dateTextSelected,
-                ]}
-              >
-                {new Date(date).getDate()}
-              </Text>
-              {isDateFullyBooked && (
-                <Text style={styles.fullText}>Full</Text>
-              )}
-            </TouchableOpacity>
+                <Text style={[styles.dateDay, selectedDate === date && styles.dateTextSelected]}>
+                  {getDayOfWeek(date)}
+                </Text>
+                <Text style={[styles.dateNumber, selectedDate === date && styles.dateTextSelected]}>
+                  {new Date(date).getDate()}
+                </Text>
+                {isFull && <Text style={styles.fullText}>Full</Text>}
+              </TouchableOpacity>
             );
           })}
         </ScrollView>
 
         {/* Time Selection */}
         <Text style={[styles.sectionTitle, !selectedDate && styles.disabledText]}>
-          Select Time {!selectedDate && '(Choose a date first)'}
+          Select Time {!selectedDate && "(Choose a date first)"}
         </Text>
         {loadingBlockedSlots ? (
           <View style={styles.loadingContainer}>
@@ -276,74 +239,37 @@ export default function BookAppointment({
             <Text style={styles.loadingMessage}>Loading available slots...</Text>
           </View>
         ) : (
-          <TouchableOpacity
-            disabled={!selectedDate}
-            style={[styles.timeDropdown, !selectedDate && styles.disabledSection]}
-            onPress={() => selectedDate && setShowTimeModal(true)}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={[styles.timeScroll, !selectedDate && styles.disabledSection]}
           >
-            <Text style={[styles.timeDropdownText, !selectedTime && styles.placeholderText]}>
-              {selectedTime || "Select a time slot..."}
-            </Text>
-            <Text style={styles.dropdownArrow}>▼</Text>
-          </TouchableOpacity>
+            {TIME_SLOTS.map((time) => {
+              const taken = selectedDate ? isTaken(selectedDate, time) : false;
+              return (
+                <TouchableOpacity
+                  key={time}
+                  disabled={!selectedDate || taken}
+                  style={[
+                    styles.timeCard,
+                    selectedTime === time && styles.timeCardSelected,
+                    (taken || !selectedDate) && styles.timeCardDisabled,
+                  ]}
+                  onPress={() => setSelectedTime(time)}
+                >
+                  <Text style={[
+                    styles.timeCardText,
+                    selectedTime === time && styles.timeTextSelected,
+                    taken && styles.timeCardTextDisabled,
+                  ]}>
+                    {time}
+                  </Text>
+                  {taken && <Text style={styles.unavailableText}>Unavailable</Text>}
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
         )}
-
-        {/* Time Modal */}
-        <Modal
-          visible={showTimeModal}
-          transparent
-          animationType="fade"
-          onRequestClose={() => setShowTimeModal(false)}
-        >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Select Time</Text>
-              {loadingBlockedSlots ? (
-                <View style={styles.modalLoadingContainer}>
-                  <ActivityIndicator size="large" color="#4CAF50" />
-                  <Text style={styles.loadingText}>Loading available slots...</Text>
-                </View>
-              ) : (
-                <ScrollView style={styles.timeModalList}>
-                  {TIME_SLOTS.map((time) => {
-                    const taken = isTaken(selectedDate, time);
-                    return (
-                      <TouchableOpacity
-                        key={time}
-                        disabled={taken}
-                        style={[
-                          styles.timeModalItem,
-                          selectedTime === time && styles.timeModalItemSelected,
-                          taken && styles.timeModalItemDisabled,
-                        ]}
-                        onPress={() => {
-                          setSelectedTime(time);
-                          setShowTimeModal(false);
-                        }}
-                      >
-                        <Text
-                          style={[
-                            styles.timeModalItemText,
-                            selectedTime === time && styles.timeModalItemTextSelected,
-                            taken && styles.timeModalItemTextDisabled,
-                          ]}
-                        >
-                          {time} {taken ? "- Unavailable" : ""}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </ScrollView>
-              )}
-              <TouchableOpacity
-                style={styles.modalCloseButton}
-                onPress={() => setShowTimeModal(false)}
-              >
-                <Text style={styles.modalCloseButtonText}>Cancel</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </Modal>
 
         {/* Notes */}
         <Text style={styles.sectionTitle}>Additional Notes (Optional)</Text>
@@ -390,7 +316,6 @@ export default function BookAppointment({
           <TouchableOpacity style={styles.resetButton} onPress={handleReset}>
             <Text style={styles.resetButtonText}>Reset</Text>
           </TouchableOpacity>
-          
           <TouchableOpacity
             style={[styles.bookButton, isBooking && styles.bookButtonDisabled]}
             onPress={handleBook}
@@ -411,311 +336,52 @@ export default function BookAppointment({
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#f5f7fb",
-  },
-  scrollView: {
-    flex: 1,
-    padding: 20,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#1a1a2e",
-    marginBottom: 20,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#1a1a2e",
-    marginBottom: 12,
-    marginTop: 20,
-  },
-  serviceGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 10,
-  },
-  serviceCard: {
-    width: "30%",
-    padding: 12,
-    backgroundColor: "#fff",
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: "#e0e0e0",
-    alignItems: "center",
-  },
-  serviceCardSelected: {
-    borderColor: "#4CAF50",
-    backgroundColor: "#e8f5e9",
-  },
-  serviceName: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#1a1a2e",
-    textAlign: "center",
-  },
-  serviceNameSelected: {
-    color: "#4CAF50",
-  },
-  serviceDuration: {
-    fontSize: 10,
-    color: "#666",
-    marginTop: 4,
-  },
-  servicePrice: {
-    fontSize: 11,
-    color: "#4CAF50",
-    fontWeight: "600",
-    marginTop: 4,
-  },
-  dateScroll: {
-    marginBottom: 10,
-  },
-  dateCard: {
-    width: 60,
-    height: 70,
-    backgroundColor: "#fff",
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: "#e0e0e0",
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 10,
-  },
-  dateCardSelected: {
-    borderColor: "#4CAF50",
-    backgroundColor: "#e8f5e9",
-  },
-  dateDay: {
-    fontSize: 12,
-    color: "#666",
-    fontWeight: "600",
-  },
-  dateNumber: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#1a1a2e",
-    marginTop: 4,
-  },
-  dateTextSelected: {
-    color: "#4CAF50",
-  },
-  dateCardDisabled: {
-    opacity: 0.5,
-    backgroundColor: "#f5f5f5",
-  },
-  fullText: {
-    fontSize: 10,
-    color: "#999",
-    fontWeight: "600",
-    marginTop: 2,
-  },
-  timeDropdown: {
-    backgroundColor: "#fff",
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: "#e0e0e0",
-    padding: 15,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  timeDropdownText: {
-    fontSize: 14,
-    color: "#1a1a2e",
-  },
-  placeholderText: {
-    color: "#999",
-  },
-  dropdownArrow: {
-    fontSize: 12,
-    color: "#666",
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    justifyContent: "flex-end",
-  },
-  modalContent: {
-    backgroundColor: "#fff",
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingTop: 20,
-    paddingBottom: 20,
-    maxHeight: "80%",
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#1a1a2e",
-    textAlign: "center",
-    marginBottom: 15,
-  },
-  timeModalList: {
-    maxHeight: "70%",
-  },
-  timeModalItem: {
-    paddingVertical: 15,
-    paddingHorizontal: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
-  },
-  timeModalItemSelected: {
-    backgroundColor: "#e8f5e9",
-  },
-  timeModalItemText: {
-    fontSize: 16,
-    color: "#1a1a2e",
-  },
-  timeModalItemTextSelected: {
-    color: "#4CAF50",
-    fontWeight: "600",
-  },
-  timeModalItemDisabled: {
-    backgroundColor: "#f5f5f5",
-    opacity: 0.6,
-  },
-  timeModalItemTextDisabled: {
-    color: "#999",
-  },
-  loadingText: {
-    fontSize: 14,
-    color: "#666",
-    textAlign: "center",
-    paddingVertical: 20,
-  },
-  modalCloseButton: {
-    marginTop: 10,
-    marginHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 8,
-    borderWidth: 2,
-    borderColor: "#e0e0e0",
-    alignItems: "center",
-  },
-  modalCloseButtonText: {
-    fontSize: 16,
-    color: "#666",
-    fontWeight: "600",
-  },
-  disabledSection: {
-    opacity: 0.5,
-  },
-  disabledText: {
-    color: "#999",
-  },
-  loadingContainer: {
-    backgroundColor: "#fff",
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: "#e0e0e0",
-    padding: 30,
-    alignItems: "center",
-    justifyContent: "center",
-    minHeight: 100,
-  },
-  loadingMessage: {
-    fontSize: 14,
-    color: "#666",
-    marginTop: 15,
-    textAlign: "center",
-  },
-  modalLoadingContainer: {
-    paddingVertical: 40,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  notesInput: {
-    backgroundColor: "#fff",
-    borderRadius: 10,
-    padding: 15,
-    fontSize: 14,
-    borderWidth: 1,
-    borderColor: "#e0e0e0",
-    minHeight: 100,
-  },
-  summaryCard: {
-    backgroundColor: "#fff",
-    borderRadius: 10,
-    padding: 20,
-    marginTop: 20,
-  },
-  summaryTitle: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#1a1a2e",
-    marginBottom: 15,
-  },
-  summaryRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 8,
-  },
-  summaryLabel: {
-    fontSize: 14,
-    color: "#666",
-  },
-  summaryValue: {
-    fontSize: 14,
-    color: "#1a1a2e",
-    fontWeight: "500",
-  },
-  divider: {
-    height: 1,
-    backgroundColor: "#e0e0e0",
-    marginVertical: 10,
-  },
-  totalLabel: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#1a1a2e",
-  },
-  totalValue: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#4CAF50",
-  },
-  buttonContainer: {
-    flexDirection: "row",
-    gap: 15,
-    marginTop: 30,
-  },
-  resetButton: {
-    flex: 1,
-    padding: 15,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: "#e0e0e0",
-    alignItems: "center",
-  },
-  resetButtonText: {
-    fontSize: 16,
-    color: "#666",
-  },
-  bookButton: {
-    flex: 2,
-    padding: 15,
-    borderRadius: 10,
-    backgroundColor: "#4CAF50",
-    alignItems: "center",
-  },
-  bookButtonDisabled: {
-    backgroundColor: "#a5d6a7",
-  },
-  bookButtonText: {
-    fontSize: 16,
-    color: "#fff",
-    fontWeight: "bold",
-  },
-  cancelLink: {
-    alignItems: "center",
-    marginTop: 20,
-    marginBottom: 40,
-  },
-  cancelLinkText: {
-    fontSize: 16,
-    color: "#666",
-  },
+  container:           { flex: 1, backgroundColor: "#f5f7fb" },
+  scrollView:          { flex: 1, padding: 20 },
+  title:               { fontSize: 24, fontWeight: "bold", color: "#1a1a2e", marginBottom: 20 },
+  sectionTitle:        { fontSize: 16, fontWeight: "600", color: "#1a1a2e", marginBottom: 12, marginTop: 20 },
+  serviceGrid:         { flexDirection: "row", flexWrap: "wrap", gap: 10 },
+  serviceCard:         { width: "30%", padding: 12, backgroundColor: "#fff", borderRadius: 10, borderWidth: 2, borderColor: "#e0e0e0", alignItems: "center" },
+  serviceCardSelected: { borderColor: "#4CAF50", backgroundColor: "#e8f5e9" },
+  serviceName:         { fontSize: 12, fontWeight: "600", color: "#1a1a2e", textAlign: "center" },
+  serviceNameSelected: { color: "#4CAF50" },
+  serviceDuration:     { fontSize: 10, color: "#666", marginTop: 4 },
+  servicePrice:        { fontSize: 11, color: "#4CAF50", fontWeight: "600", marginTop: 4 },
+  dateScroll:          { marginBottom: 10 },
+  dateCard:            { width: 60, height: 70, backgroundColor: "#fff", borderRadius: 10, borderWidth: 2, borderColor: "#e0e0e0", alignItems: "center", justifyContent: "center", marginRight: 10 },
+  dateCardSelected:    { borderColor: "#4CAF50", backgroundColor: "#e8f5e9" },
+  dateCardDisabled:    { opacity: 0.5, backgroundColor: "#f5f5f5" },
+  dateDay:             { fontSize: 12, color: "#666", fontWeight: "600" },
+  dateNumber:          { fontSize: 18, fontWeight: "bold", color: "#1a1a2e", marginTop: 4 },
+  dateTextSelected:    { color: "#4CAF50" },
+  fullText:            { fontSize: 10, color: "#999", fontWeight: "600", marginTop: 2 },
+  timeScroll:          { marginBottom: 10 },
+  timeCard:            { width: 70, height: 70, backgroundColor: "#fff", borderRadius: 10, borderWidth: 2, borderColor: "#e0e0e0", alignItems: "center", justifyContent: "center", marginRight: 10 },
+  timeCardSelected:    { borderColor: "#4CAF50", backgroundColor: "#e8f5e9" },
+  timeCardDisabled:    { opacity: 0.5, backgroundColor: "#f5f5f5" },
+  timeCardText:        { fontSize: 14, fontWeight: "600", color: "#1a1a2e" },
+  timeCardTextDisabled:{ color: "#999" },
+  timeTextSelected:    { color: "#4CAF50" },
+  unavailableText:     { fontSize: 9, color: "#999", fontWeight: "600", marginTop: 2 },
+  loadingContainer:    { backgroundColor: "#fff", borderRadius: 10, borderWidth: 2, borderColor: "#e0e0e0", padding: 30, alignItems: "center", justifyContent: "center", minHeight: 100 },
+  loadingMessage:      { fontSize: 14, color: "#666", marginTop: 15, textAlign: "center" },
+  disabledSection:     { opacity: 0.5 },
+  disabledText:        { color: "#999" },
+  notesInput:          { backgroundColor: "#fff", borderRadius: 10, padding: 15, fontSize: 14, borderWidth: 1, borderColor: "#e0e0e0", minHeight: 100 },
+  summaryCard:         { backgroundColor: "#fff", borderRadius: 10, padding: 20, marginTop: 20 },
+  summaryTitle:        { fontSize: 16, fontWeight: "bold", color: "#1a1a2e", marginBottom: 15 },
+  summaryRow:          { flexDirection: "row", justifyContent: "space-between", marginBottom: 8 },
+  summaryLabel:        { fontSize: 14, color: "#666" },
+  summaryValue:        { fontSize: 14, color: "#1a1a2e", fontWeight: "500" },
+  divider:             { height: 1, backgroundColor: "#e0e0e0", marginVertical: 10 },
+  totalLabel:          { fontSize: 16, fontWeight: "bold", color: "#1a1a2e" },
+  totalValue:          { fontSize: 16, fontWeight: "bold", color: "#4CAF50" },
+  buttonContainer:     { flexDirection: "row", gap: 15, marginTop: 30 },
+  resetButton:         { flex: 1, padding: 15, borderRadius: 10, borderWidth: 2, borderColor: "#e0e0e0", alignItems: "center" },
+  resetButtonText:     { fontSize: 16, color: "#666" },
+  bookButton:          { flex: 2, padding: 15, borderRadius: 10, backgroundColor: "#4CAF50", alignItems: "center" },
+  bookButtonDisabled:  { backgroundColor: "#a5d6a7" },
+  bookButtonText:      { fontSize: 16, color: "#fff", fontWeight: "bold" },
+  cancelLink:          { alignItems: "center", marginTop: 20, marginBottom: 40 },
+  cancelLinkText:      { fontSize: 16, color: "#666" },
 });
