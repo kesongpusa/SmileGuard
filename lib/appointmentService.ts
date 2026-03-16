@@ -123,3 +123,54 @@ export async function cancelAppointment(
 
   return { success: true, message: 'Appointment cancelled successfully.' }
 }
+
+// ─────────────────────────────────────────
+// 5. GET ALL BLOCKED SLOTS (date + time pairs)
+// ─────────────────────────────────────────
+export interface BlockedSlot {
+  date: string
+  time: string
+  patientId: string
+  patientName?: string
+  service?: string
+}
+
+export async function getAllBlockedSlots(): Promise<BlockedSlot[]> {
+  const { data, error } = await supabase
+    .from('appointments')
+    .select(`
+      appointment_date,
+      appointment_time,
+      patient_id,
+      service,
+      profiles!appointments_patient_id_fkey (name)
+    `)
+    .neq('status', 'cancelled')
+    .order('appointment_date', { ascending: true })
+
+  if (error) {
+    console.error('Error fetching blocked slots:', error)
+    return []
+  }
+
+  return data.map((appointment: any) => ({
+    date: appointment.appointment_date?.split('T')[0] || '',
+    time: appointment.appointment_time,
+    patientId: appointment.patient_id,
+    patientName: appointment.profiles?.name || 'Unknown Patient',
+    service: appointment.service,
+  }))
+}
+
+// ─────────────────────────────────────────
+// 6. CHECK IF SPECIFIC DATE+TIME IS TAKEN
+// ─────────────────────────────────────────
+export function isSlotTaken(
+  blockedSlots: BlockedSlot[],
+  date: string,
+  time: string
+): boolean {
+  return blockedSlots.some(
+    (slot) => slot.date === date && slot.time === time
+  )
+}

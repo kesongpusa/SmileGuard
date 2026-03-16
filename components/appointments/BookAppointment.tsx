@@ -1,7 +1,7 @@
-import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, SafeAreaView, Modal } from "react-native";
+import React, { useState, useEffect } from "react";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, SafeAreaView, Modal, ActivityIndicator } from "react-native";
 import { saveAppointment, Appointment } from "../../lib/database.ts";
-import { getBookedSlots, checkDayFull } from "../../lib/appointmentService.ts";
+import { getBookedSlots, checkDayFull, getAllBlockedSlots, isSlotTaken, BlockedSlot } from "../../lib/appointmentService.ts";
 
 // Available services
 const SERVICES = [
@@ -44,6 +44,32 @@ export default function BookAppointment({
   const [bookedSlots, setBookedSlots] = useState<string[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [fullyBookedDates, setFullyBookedDates] = useState<Set<string>>(new Set());
+  const [blockedSlots, setBlockedSlots] = useState<BlockedSlot[]>([]);
+  const [loadingBlockedSlots, setLoadingBlockedSlots] = useState(true);
+  
+  // Fetch all blocked slots on component mount
+  useEffect(() => {
+    fetchAllBlockedSlots();
+  }, []);
+
+  // Fetch all blocked slots from Supabase
+  const fetchAllBlockedSlots = async () => {
+    setLoadingBlockedSlots(true);
+    try {
+      const slots = await getAllBlockedSlots();
+      setBlockedSlots(slots);
+    } catch (error) {
+      console.error("Error fetching all blocked slots:", error);
+      setBlockedSlots([]);
+    } finally {
+      setLoadingBlockedSlots(false);
+    }
+  };
+
+  // Helper function to check if slot is taken
+  const isTaken = (date: string, time: string): boolean => {
+    return isSlotTaken(blockedSlots, date, time);
+  };
   
   // Generate next 30 days
   const availableDates = Array.from({ length: 30 }, (_, i) => {
@@ -70,7 +96,8 @@ export default function BookAppointment({
 
   // Check if slot is available
   const isSlotAvailable = (time: string): boolean => {
-    return !bookedSlots.includes(time);
+    if (!selectedDate) return false;
+    return !isTaken(selectedDate, time);
   };
 
   // Fetch booked slots for selected date
@@ -80,17 +107,17 @@ export default function BookAppointment({
     setLoadingSlots(true);
     
     try {
-      const slots = await getBookedSlots(date);
-      setBookedSlots(slots);
+      // We use blocked slots that are already fetched instead of fetching per date
+      // This improves performance and keeps data consistent
       
       // Check if this date is fully booked
-      const dayFull = await checkDayFull(date);
+      const slotsOnThisDate = blockedSlots.filter(slot => slot.date === date);
+      const dayFull = slotsOnThisDate.length >= TIME_SLOTS.length;
       if (dayFull) {
         setFullyBookedDates(prev => new Set([...prev, date]));
       }
     } catch (error) {
-      console.error("Error fetching booked slots:", error);
-      setBookedSlots([]);
+      console.error("Error checking date:", error);
     } finally {
       setLoadingSlots(false);
     }
@@ -135,6 +162,9 @@ export default function BookAppointment({
       const result = await saveAppointment(appointmentData);
 
       if (result.success) {
+        // Re-fetch all blocked slots after successful booking
+        await fetchAllBlockedSlots();
+        
         Alert.alert(
           "Appointment Booked!",
           `Service: ${selectedService.name}\nDate: ${formatDate(selectedDate)}\nTime: ${selectedTime}\n\n${result.offlineId ? "Saved offline. Will sync when connected." : ""}`,
@@ -240,16 +270,23 @@ export default function BookAppointment({
         <Text style={[styles.sectionTitle, !selectedDate && styles.disabledText]}>
           Select Time {!selectedDate && '(Choose a date first)'}
         </Text>
-        <TouchableOpacity
-          disabled={!selectedDate}
-          style={[styles.timeDropdown, !selectedDate && styles.disabledSection]}
-          onPress={() => selectedDate && setShowTimeModal(true)}
-        >
-          <Text style={[styles.timeDropdownText, !selectedTime && styles.placeholderText]}>
-            {selectedTime || "Select a time slot..."}
-          </Text>
-          <Text style={styles.dropdownArrow}>▼</Text>
-        </TouchableOpacity>
+        {loadingBlockedSlots ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#4CAF50" />
+            <Text style={styles.loadingMessage}>Loading available slots...</Text>
+          </View>
+        ) : (
+          <TouchableOpacity
+            disabled={!selectedDate}
+            style={[styles.timeDropdown, !selectedDate && styles.disabledSection]}
+            onPress={() => selectedDate && setShowTimeModal(true)}
+          >
+            <Text style={[styles.timeDropdownText, !selectedTime && styles.placeholderText]}>
+              {selectedTime || "Select a time slot..."}
+            </Text>
+            <Text style={styles.dropdownArrow}>▼</Text>
+          </TouchableOpacity>
+        )}
 
         {/* Time Modal */}
         <Modal
@@ -261,20 +298,23 @@ export default function BookAppointment({
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
               <Text style={styles.modalTitle}>Select Time</Text>
-              {loadingSlots ? (
-                <Text style={styles.loadingText}>Loading available slots...</Text>
+              {loadingBlockedSlots ? (
+                <View style={styles.modalLoadingContainer}>
+                  <ActivityIndicator size="large" color="#4CAF50" />
+                  <Text style={styles.loadingText}>Loading available slots...</Text>
+                </View>
               ) : (
                 <ScrollView style={styles.timeModalList}>
                   {TIME_SLOTS.map((time) => {
-                    const isBooked = !isSlotAvailable(time);
+                    const taken = isTaken(selectedDate, time);
                     return (
                       <TouchableOpacity
                         key={time}
-                        disabled={isBooked}
+                        disabled={taken}
                         style={[
                           styles.timeModalItem,
                           selectedTime === time && styles.timeModalItemSelected,
-                          isBooked && styles.timeModalItemDisabled,
+                          taken && styles.timeModalItemDisabled,
                         ]}
                         onPress={() => {
                           setSelectedTime(time);
@@ -285,10 +325,10 @@ export default function BookAppointment({
                           style={[
                             styles.timeModalItemText,
                             selectedTime === time && styles.timeModalItemTextSelected,
-                            isBooked && styles.timeModalItemTextDisabled,
+                            taken && styles.timeModalItemTextDisabled,
                           ]}
                         >
-                          {time} {isBooked ? "(Booked)" : ""}
+                          {time} {taken ? "- Unavailable" : ""}
                         </Text>
                       </TouchableOpacity>
                     );
@@ -565,6 +605,27 @@ const styles = StyleSheet.create({
   },
   disabledText: {
     color: "#999",
+  },
+  loadingContainer: {
+    backgroundColor: "#fff",
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: "#e0e0e0",
+    padding: 30,
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 100,
+  },
+  loadingMessage: {
+    fontSize: 14,
+    color: "#666",
+    marginTop: 15,
+    textAlign: "center",
+  },
+  modalLoadingContainer: {
+    paddingVertical: 40,
+    alignItems: "center",
+    justifyContent: "center",
   },
   notesInput: {
     backgroundColor: "#fff",

@@ -38,6 +38,7 @@ export function useAuth() {
 
   // Fetch the user's profile from the profiles table
   const fetchProfile = async (userId: string) => {
+    console.log("🔍 Fetching profile for user:", userId);
     try {
       const { data, error } = await supabase
         .from("profiles")
@@ -45,13 +46,16 @@ export function useAuth() {
         .eq("id", userId)
         .single();
 
+      console.log("📊 Fetch result:", { hasData: !!data, hasError: !!error, errorCode: error?.code });
+
       if (error) {
         // If profile doesn't exist, try to get user metadata
         if (error.code === "PGRST116") {
-          console.warn("Profile not found for user:", userId);
+          console.warn("⚠️ Profile not found, attempting to create from user metadata...");
           const { data: { user } } = await supabase.auth.getUser();
           
           if (!user || user.id !== userId) {
+            console.error("❌ Current user mismatch or not found");
             setError("User not found.");
             setLoading(false);
             return;
@@ -60,8 +64,10 @@ export function useAuth() {
           const userName = user.user_metadata?.name || user.email?.split("@")[0] || "User";
           const userRole = user.user_metadata?.role || "patient";
 
+          console.log("📝 Creating profile from metadata:", { userName, userRole });
+
           // Create the profile from user metadata
-          const { error: createError } = await supabase
+          const { data: createdProfile, error: createError } = await supabase
             .from("profiles")
             .insert({
               id: userId,
@@ -70,27 +76,32 @@ export function useAuth() {
               role: userRole,
               service: user.user_metadata?.service || "General",
             })
+            .select()
             .single();
 
           if (createError) {
-            console.error("Error creating profile:", createError);
+            console.error("❌ Error creating profile:", createError);
             // Don't set error, just try to continue with metadata
+            console.log("💡 Continuing with user metadata instead");
             setCurrentUser({
               name: userName,
               email: user.email || "",
               role: userRole as "patient" | "doctor",
             });
           } else {
+            console.log("✅ Profile created successfully");
             setCurrentUser({
-              name: userName,
-              email: user.email || "",
-              role: userRole as "patient" | "doctor",
+              name: createdProfile?.name || userName,
+              email: createdProfile?.email || user.email || "",
+              role: (createdProfile?.role as "patient" | "doctor") || userRole,
             });
           }
         } else {
+          console.error("❌ Profile fetch error:", error);
           throw error;
         }
       } else {
+        console.log("✅ Profile found:", data);
         setCurrentUser({
           name: data.name,
           email: data.email,
@@ -100,8 +111,8 @@ export function useAuth() {
     } catch (err) {
       // User-facing error handling instead of silent console.error
       const errorMessage = err instanceof Error ? err.message : "Failed to load profile. Please try again.";
+      console.error("❌ Error in fetchProfile:", err);
       setError(errorMessage);
-      console.error("Error fetching profile:", err);
     } finally {
       setLoading(false);
     }
@@ -115,6 +126,8 @@ export function useAuth() {
     // Clear any previous errors
     setError(null);
     
+    console.log("🔐 Starting login for:", email, "as", role);
+    
     // Sign in with Supabase Auth
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
@@ -122,8 +135,11 @@ export function useAuth() {
     });
 
     if (error) {
+      console.error("❌ Auth error:", error);
       throw new Error(error.message);
     }
+
+    console.log("✅ Auth successful, user ID:", data.user.id);
 
     // Fetch the user's profile to verify their role
     const { data: profile, error: profileError } = await supabase
@@ -132,14 +148,18 @@ export function useAuth() {
       .eq("id", data.user.id)
       .single();
 
+    console.log("📊 Profile fetch result:", { profileExists: !!profile, hasError: !!profileError, errorCode: profileError?.code });
+
     // If profile doesn't exist, create it from user metadata
     if (profileError && profileError.code === "PGRST116") { // No rows found
-      console.warn("Profile not found for user, creating from metadata...");
+      console.warn("⚠️ Profile not found for user, creating from metadata...");
       
       const userName = data.user.user_metadata?.name || email.split("@")[0];
       const userRole = data.user.user_metadata?.role || role;
       
-      const { error: createError } = await supabase
+      console.log("📝 Creating profile with:", { userName, userRole, userId: data.user.id });
+      
+      const { data: insertedProfile, error: createError } = await supabase
         .from("profiles")
         .insert({
           id: data.user.id,
@@ -147,29 +167,41 @@ export function useAuth() {
           email: data.user.email,
           role: userRole,
           service: data.user.user_metadata?.service || "General",
-        });
+        })
+        .select()
+        .single();
 
       if (createError) {
-        console.error("Error creating profile:", createError);
-        throw new Error("Failed to create user profile. Please try again.");
+        console.error("❌ Error creating profile:", createError);
+        throw new Error(`Failed to create user profile: ${createError.message}`);
       }
 
+      console.log("✅ Profile created successfully:", insertedProfile);
+
       return {
-        name: userName,
-        email: data.user.email || email,
-        role: userRole as "patient" | "doctor",
+        name: insertedProfile?.name || userName,
+        email: insertedProfile?.email || data.user.email || email,
+        role: (insertedProfile?.role as "patient" | "doctor") || userRole,
       };
     }
 
     if (profileError) {
-      console.error("Error fetching profile:", profileError);
+      console.error("❌ Error fetching profile:", profileError);
+      throw new Error(`Profile error: ${profileError.message}`);
+    }
+
+    if (!profile) {
+      console.error("❌ Profile is null even though no error");
       throw new Error("Profile not found. Please contact support.");
     }
 
+    console.log("✅ Profile found:", profile);
+
     if (profile.role !== role) {
       // Sign them out since role doesn't match
+      console.warn("⚠️ Role mismatch:", { expected: role, actual: profile.role });
       await supabase.auth.signOut();
-      throw new Error(`This account is not registered as a ${role}.`);
+      throw new Error(`This account is not registered as a ${role}. It's registered as a ${profile.role}.`);
     }
 
     return {
