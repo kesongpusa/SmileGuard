@@ -21,7 +21,7 @@ const supabase = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_module
     auth: {
         autoRefreshToken: true,
         persistSession: true,
-        detectSessionInUrl: false
+        detectSessionInUrl: ("TURBOPACK compile-time value", "object") !== "undefined"
     }
 });
 ;

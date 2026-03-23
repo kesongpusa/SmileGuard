@@ -32,13 +32,10 @@ export default function DoctorDashboard({ user, onLogout }: DoctorDashboardProps
 
   return (
     <SafeAreaProvider>
-      <SafeAreaView style={{ flex: 1, backgroundColor: "#f5f7fb" }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: "#f0f8ff" }}>
         {/* Header Bar */}
         <View style={styles.topBar}>
-          <Text style={styles.topBarText}>SmileGuard MD</Text>
-          <TouchableOpacity onPress={onLogout} style={styles.logoutBtn}>
-            <Text style={{ color: "white", fontWeight: "bold" }}>Logout</Text>
-          </TouchableOpacity>
+          <Text style={styles.topBarText}>🦷 SmileGuard MD</Text>
         </View>
 
         <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -142,12 +139,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "bold",
     color: "#0b7fab",
-  },
-  logoutBtn: {
-    backgroundColor: "#ef4444",
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 6,
   },
   scrollContent: {
     paddingBottom: 40,

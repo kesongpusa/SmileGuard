@@ -138,113 +138,128 @@ export default function BookAppointment({ onSuccess, onCancel }: BookAppointment
   };
 
   if (loadingBlockedSlots) {
-    return <div className="flex justify-center items-center p-8">Loading available slots...</div>;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
   }
 
   return (
-    <div className="w-full max-w-2xl mx-auto p-6 bg-white rounded-lg shadow-lg">
-      <h2 className="text-2xl font-bold mb-6 text-gray-800">Book an Appointment</h2>
+    <div className="p-6 bg-gray-50 min-h-screen">
+      <h1 className="text-4xl font-bold text-gray-800 mb-2">📅 Book an Appointment</h1>
+      <p className="text-gray-600 mb-8">Schedule a visit with our dental professionals</p>
 
-      {/* Existing Appointments Summary */}
+      {/* Upcoming Appointments Summary */}
       {!loadingUserData && userAppointments.length > 0 && (
-        <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-          <p className="text-sm text-gray-600">Your Upcoming Appointments</p>
-          <p className="text-lg font-semibold text-green-700">{userAppointments.length} scheduled</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+          <div className="bg-green-50 rounded-lg shadow-md p-6 border-l-4 border-green-600">
+            <p className="text-sm text-gray-600">Upcoming Appointments</p>
+            <p className="text-3xl font-bold text-green-700">{userAppointments.length}</p>
+            <p className="text-xs text-gray-500 mt-2">Already scheduled</p>
+          </div>
+          <div className="bg-blue-50 rounded-lg shadow-md p-6 border-l-4 border-blue-600">
+            <p className="text-sm text-gray-600">Next Available</p>
+            <p className="text-3xl font-bold text-blue-700">{TIME_SLOTS.length} slots</p>
+            <p className="text-xs text-gray-500 mt-2">Per day</p>
+          </div>
         </div>
       )}
 
-      {/* Service Selection */}
-      <div className="mb-6">
-        <label className="block text-sm font-semibold text-gray-700 mb-3">
-          Select Service
-        </label>
-        <div className="grid grid-cols-2 gap-3">
-          {SERVICES.map((service) => (
-            <button
-              key={service.id}
-              onClick={() => setSelectedService(service)}
-              className={`p-3 rounded-lg border-2 text-left transition ${
-                selectedService?.id === service.id
-                  ? 'border-blue-600 bg-blue-50'
-                  : 'border-gray-200 hover:border-blue-300'
-              }`}
-            >
-              <div className="font-medium text-gray-800">{service.name}</div>
-              <div className="text-sm text-gray-600">₱{service.price}</div>
-            </button>
-          ))}
+      {/* Booking Form */}
+      <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+        {/* Service Selection */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">Step 1: Select Service</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {SERVICES.map((service) => (
+              <button
+                key={service.id}
+                onClick={() => setSelectedService(service)}
+                className={`p-4 rounded-lg border-2 text-left transition ${
+                  selectedService?.id === service.id
+                    ? 'border-blue-600 bg-blue-50 shadow-md'
+                    : 'border-gray-200 hover:border-blue-300 hover:shadow'
+                }`}
+              >
+                <div className="font-semibold text-gray-800">{service.name}</div>
+                <div className="text-sm text-gray-600 mt-1">{service.duration} mins</div>
+                <div className="text-blue-600 font-bold mt-2">₱{service.price}</div>
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
 
-      {/* Date Selection */}
-      <div className="mb-6">
-        <label className="block text-sm font-semibold text-gray-700 mb-3">
-          Select Date
-        </label>
-        <input
-          type="date"
-          value={selectedDate}
-          onChange={(e) => setSelectedDate(e.target.value)}
-          disabled={fullyBookedDates.has(selectedDate)}
-          className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
-        />
-        {fullyBookedDates.has(selectedDate) && (
-          <p className="text-sm text-red-600 mt-2">This date is fully booked</p>
-        )}
-      </div>
+        <hr className="my-8" />
 
-      {/* Time Selection */}
-      <div className="mb-6">
-        <label className="block text-sm font-semibold text-gray-700 mb-3">
-          Select Time
-        </label>
-        <div className="grid grid-cols-4 gap-2">
-          {TIME_SLOTS.map((time) => (
-            <button
-              key={time}
-              onClick={() => setSelectedTime(time)}
-              disabled={isSlotDisabled(selectedDate, time)}
-              className={`p-2 rounded text-sm font-medium transition ${
-                selectedTime === time
-                  ? 'bg-blue-600 text-white'
-                  : isSlotDisabled(selectedDate, time)
-                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                    : 'bg-gray-100 hover:bg-gray-200'
-              }`}
-            >
-              {time}
-            </button>
-          ))}
+        {/* Date Selection */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">Step 2: Select Date</h2>
+          <input
+            type="date"
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            disabled={fullyBookedDates.has(selectedDate)}
+            className="w-full md:w-1/3 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
+          />
+          {fullyBookedDates.has(selectedDate) && (
+            <p className="text-sm text-red-600 mt-2">⚠️ This date is fully booked</p>
+          )}
         </div>
-      </div>
 
-      {/* Notes */}
-      <div className="mb-6">
-        <label className="block text-sm font-semibold text-gray-700 mb-3">
-          Additional Notes (Optional)
-        </label>
-        <textarea
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          placeholder="Any special requests or medical history..."
-          className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
-          rows={4}
-        />
+        <hr className="my-8" />
+
+        {/* Time Selection */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">Step 3: Select Time</h2>
+          <div className="grid grid-cols-3 md:grid-cols-7 gap-2">
+            {TIME_SLOTS.map((time) => (
+              <button
+                key={time}
+                onClick={() => setSelectedTime(time)}
+                disabled={isSlotDisabled(selectedDate, time)}
+                className={`p-2 rounded-lg text-sm font-medium transition ${
+                  selectedTime === time
+                    ? 'bg-blue-600 text-white shadow-md'
+                    : isSlotDisabled(selectedDate, time)
+                      ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                      : 'bg-gray-100 hover:bg-blue-100 hover:border-blue-300'
+                }`}
+              >
+                {time}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <hr className="my-8" />
+
+        {/* Notes */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">Step 4: Additional Notes (Optional)</h2>
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Any special requests, medical concerns, or conditions we should know about..."
+            className="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 bg-gray-50"
+            rows={4}
+          />
+        </div>
       </div>
 
       {/* Action Buttons */}
-      <div className="flex gap-4">
+      <div className="flex flex-col md:flex-row gap-4">
         <button
           onClick={handleBooking}
           disabled={isBooking || !selectedService || !selectedDate || !selectedTime}
-          className="flex-1 p-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 disabled:bg-gray-400"
+          className="flex-1 p-4 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 disabled:bg-gray-400 transition text-lg"
         >
-          {isBooking ? 'Booking...' : 'Book Appointment'}
+          {isBooking ? '⏳ Booking...' : '✓ Confirm Appointment'}
         </button>
         {onCancel && (
           <button
             onClick={onCancel}
-            className="flex-1 p-3 bg-gray-300 text-gray-800 font-semibold rounded-lg hover:bg-gray-400"
+            className="flex-1 p-4 bg-gray-300 text-gray-800 font-semibold rounded-lg hover:bg-gray-400 transition"
           >
             Cancel
           </button>

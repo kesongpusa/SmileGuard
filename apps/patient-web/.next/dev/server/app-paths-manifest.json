@@ -1,8 +1,5 @@
 {
   "/(auth)/login/page": "app/(auth)/login/page.js",
-  "/(auth)/signup/page": "app/(auth)/signup/page.js",
-  "/(patient)/appointments/page": "app/(patient)/appointments/page.js",
-  "/(patient)/billing/page": "app/(patient)/billing/page.js",
   "/(patient)/dashboard/page": "app/(patient)/dashboard/page.js",
   "/page": "app/page.js"
 }
