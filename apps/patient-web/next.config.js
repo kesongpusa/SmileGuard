@@ -4,10 +4,8 @@ const nextConfig = {
   typescript: {
     tsconfigPath: './tsconfig.json',
   },
-  webpack: (config) => {
-    // Add any webpack customizations here
-    return config;
-  },
+  turbopack: {},
+  transpilePackages: ['@smileguard/shared-types', '@smileguard/shared-hooks', '@smileguard/supabase-client'],
 };
 
 module.exports = nextConfig;
