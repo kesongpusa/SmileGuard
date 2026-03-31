@@ -15,21 +15,38 @@ const SERVICE_PRICES: Record<string, number> = {
 };
 
 export async function calculateOutstandingBalance(userId: string): Promise<number> {
-  const [balance, billings, appts] = await Promise.all([
-    getBalance(userId),
-    getBillings(userId),
-    getPatientAppointments(userId),
-  ]);
+  console.log("[calculateOutstandingBalance] Starting calculation for user:", userId);
+  try {
+    const [balance, billings, appts] = await Promise.all([
+      getBalance(userId),
+      getBillings(userId),
+      getPatientAppointments(userId),
+    ]);
 
-  const paidApptIds = new Set(
-    billings
-      .filter((b) => b.payment_status === 'paid' && b.appointment_id)
-      .map((b) => b.appointment_id)
-  );
-  const unpaid = appts.filter((a) => a.status !== 'cancelled' && !paidApptIds.has(a.id));
+    console.log("[calculateOutstandingBalance] Data fetched:", { 
+      baseBalance: balance, 
+      billingsCount: billings.length, 
+      appointmentsCount: appts.length 
+    });
 
-  const unpaidApptsSum = unpaid.reduce((sum, a) => sum + (SERVICE_PRICES[a.service] || 0), 0);
-  return balance + unpaidApptsSum;
+    const paidApptIds = new Set(
+      billings
+        .filter((b) => b.payment_status === 'paid' && b.appointment_id)
+        .map((b) => b.appointment_id)
+    );
+    const unpaid = appts.filter((a) => a.status !== 'cancelled' && !paidApptIds.has(a.id));
+
+    console.log("[calculateOutstandingBalance] Unpaid appointments:", unpaid.length);
+
+    const unpaidApptsSum = unpaid.reduce((sum, a) => sum + (SERVICE_PRICES[a.service] || 0), 0);
+    const total = balance + unpaidApptsSum;
+    
+    console.log("[calculateOutstandingBalance] Calculation complete:", { baseBalance: balance, unpaidServices: unpaidApptsSum, total });
+    return total;
+  } catch (err) {
+    console.error("[calculateOutstandingBalance] Error:", err);
+    throw err;
+  }
 }
 
 export async function fetchBillingDataForDashboard(
@@ -39,26 +56,46 @@ export async function fetchBillingDataForDashboard(
   unpaidAppointments: Appointment[];
   billingHistory: Billing[];
 }> {
-  const [balance, billings, appts] = await Promise.all([
-    getBalance(userId),
-    getBillings(userId),
-    getPatientAppointments(userId),
-  ]);
+  console.log("[fetchBillingDataForDashboard] Fetching billing data for user:", userId);
+  try {
+    const [balance, billings, appts] = await Promise.all([
+      getBalance(userId),
+      getBillings(userId),
+      getPatientAppointments(userId),
+    ]);
 
-  const paidApptIds = new Set(
-    billings
-      .filter((b) => b.payment_status === 'paid' && b.appointment_id)
-      .map((b) => b.appointment_id)
-  );
-  const unpaid = appts.filter((a) => a.status !== 'cancelled' && !paidApptIds.has(a.id));
+    console.log("[fetchBillingDataForDashboard] Raw data fetched:", {
+      baseBalance: balance,
+      billingsCount: billings.length,
+      appointmentsCount: appts.length
+    });
 
-  const unpaidApptsSum = unpaid.reduce((sum, a) => sum + (SERVICE_PRICES[a.service] || 0), 0);
+    const paidApptIds = new Set(
+      billings
+        .filter((b) => b.payment_status === 'paid' && b.appointment_id)
+        .map((b) => b.appointment_id)
+    );
+    const unpaid = appts.filter((a) => a.status !== 'cancelled' && !paidApptIds.has(a.id));
 
-  return {
-    outstandingBalance: balance + unpaidApptsSum,
-    unpaidAppointments: unpaid,
-    billingHistory: billings,
-  };
+    const unpaidApptsSum = unpaid.reduce((sum, a) => sum + (SERVICE_PRICES[a.service] || 0), 0);
+
+    const result = {
+      outstandingBalance: balance + unpaidApptsSum,
+      unpaidAppointments: unpaid,
+      billingHistory: billings,
+    };
+
+    console.log("[fetchBillingDataForDashboard] Result prepared:", {
+      outstandingBalance: result.outstandingBalance,
+      unpaidAppointmentsCount: unpaid.length,
+      billingHistoryCount: billings.length
+    });
+
+    return result;
+  } catch (err) {
+    console.error("[fetchBillingDataForDashboard] Error:", err);
+    throw err;
+  }
 }
 
 export { SERVICE_PRICES };

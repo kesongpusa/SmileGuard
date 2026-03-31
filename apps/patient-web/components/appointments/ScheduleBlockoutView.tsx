@@ -117,7 +117,7 @@ export default function ScheduleBlockoutView({ compact = false }: ScheduleBlocko
     <div className="w-full">
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-text-primary">📅 Your Scheduled Appointments</h2>
+          <h2 className="text-2xl font-bold text-text-primary">Your Scheduled Appointments</h2>
           <p className="text-text-secondary text-sm mt-1">
             {appointments.length} appointment{appointments.length !== 1 ? 's' : ''} scheduled
           </p>

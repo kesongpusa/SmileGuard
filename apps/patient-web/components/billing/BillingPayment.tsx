@@ -188,25 +188,25 @@ export default function BillingPayment({
 
   return (
     <div className="p-6 bg-bg-screen min-h-screen">
-      <h1 className="text-4xl font-bold text-brand-cyan mb-2">💳 Manage Billing</h1>
+      <h1 className="text-4xl font-bold text-brand-cyan mb-2">Manage Billing</h1>
       <p className="text-text-secondary mb-8">View and pay your outstanding balances</p>
 
       {/* Financial Summary Stats */}
       {!loadingData && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
           <a href="/">
-            <div className="bg-brand-danger/10 rounded-lg shadow-md p-6 border-l-4 border-brand-danger transition-all duration-300 hover:shadow-lg hover:-translate-y-1 cursor-pointer">
+            <div className="bg-brand-danger/10 rounded-lg shadow-md p-6 transition-shadow duration-300 hover:shadow-[0_0_30px_rgba(240,84,84,0.4)] cursor-pointer">
               <p className="text-sm text-text-secondary">Outstanding Balance</p>
               <p className="text-3xl font-bold text-brand-danger">₱{outstandingBalance?.toFixed(2)}</p>
               <p className="text-xs text-text-secondary mt-2">Current Due</p>
             </div>
           </a>
-          <div className="bg-brand-primary/10 rounded-lg shadow-md p-6 border-l-4 border-brand-primary">
+          <div className="bg-brand-primary/10 rounded-lg shadow-md p-6 transition-shadow duration-300 hover:shadow-[0_0_30px_rgba(61,170,184,0.4)]">
             <p className="text-sm text-text-secondary">Total Transactions</p>
             <p className="text-3xl font-bold text-brand-primary">{billingHistory.length}</p>
             <p className="text-xs text-text-secondary mt-2">On Record</p>
           </div>
-          <div className="bg-green-50 rounded-lg shadow-md p-6 border-l-4 border-green-600">
+          <div className="bg-green-50 rounded-lg shadow-md p-6 transition-shadow duration-300 hover:shadow-[0_0_30px_rgba(34,197,94,0.4)]">
             <p className="text-sm text-text-secondary">Account Status</p>
             <p className="text-3xl font-bold text-green-700">
               {outstandingBalance === 0 && unpaidAppointments.length === 0 ? '✓ Paid' : '⚠️ Pending'}
@@ -217,7 +217,7 @@ export default function BillingPayment({
       )}
 
       {/* Payment Form */}
-      <div className="bg-bg-surface rounded-lg shadow-md p-6 mb-8 border border-border-card">
+      <div className="bg-bg-surface rounded-lg shadow-md p-6 mb-8 transition-shadow duration-300 hover:shadow-[0_0_30px_rgba(41,171,226,0.4)]">
         <h2 className="text-2xl font-bold text-text-primary mb-6">💰 Make Payment</h2>
 
         <div className="space-y-6">
@@ -227,9 +227,9 @@ export default function BillingPayment({
               Select Availed Service
             </label>
             {unpaidAppointments.length > 0 ? (
-              <div className="bg-bg-notes border border-border-card rounded-lg p-2">
-                <div className="border border-dashed border-border-card rounded bg-bg-surface overflow-hidden">
-                  <div className="bg-bg-notes text-text-secondary text-xs font-bold tracking-widest text-center py-2 border-b border-dashed border-border-card">
+              <div className="bg-bg-notes rounded-lg p-2 shadow-sm">
+                <div className="rounded bg-bg-surface overflow-hidden shadow-sm">
+                  <div className="bg-bg-notes text-text-secondary text-xs font-bold tracking-widest text-center py-2">
                     PENDING INVOICES
                   </div>
                   <div className="flex flex-col">
@@ -241,7 +241,7 @@ export default function BillingPayment({
                           type="button"
                           key={apt.id}
                           onClick={() => handleAppointmentSelect(apt)}
-                          className={`w-full p-4 flex justify-between items-center border-b border-dashed border-border-card last:border-0 transition text-left ${
+                          className={`w-full p-4 flex justify-between items-center transition text-left ${
                             isSelected
                               ? 'bg-brand-primary/5'
                               : 'hover:bg-bg-notes bg-bg-surface'
@@ -377,7 +377,7 @@ export default function BillingPayment({
       {/* Billing History */}
       {billingHistory.length > 0 && (
         <div className="bg-bg-surface rounded-lg shadow-md p-6 mb-8 border border-border-card">
-          <h2 className="text-2xl font-bold text-text-primary mb-6">📋 Billing History</h2>
+          <h2 className="text-2xl font-bold text-text-primary mb-6">Billing History</h2>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>

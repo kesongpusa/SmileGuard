@@ -19,27 +19,37 @@ export default function PatientDashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    console.log("[PatientDashboard] Effect triggered:", { authLoading, currentUserId: currentUser?.id });
+    
     // If auth is still initializing, wait
-    if (authLoading) return;
+    if (authLoading) {
+      console.log("[PatientDashboard] Auth still loading...");
+      return;
+    }
 
     // If user is not authenticated, redirect to login immediately
     if (!currentUser) {
+      console.warn("[PatientDashboard] No current user, redirecting to login");
       router.push('/login');
       return;
     }
+
+    console.log("[PatientDashboard] User authenticated, fetching dashboard data...");
 
     // User is authenticated, fetch dashboard data
     async function fetchData() {
       setLoading(true);
       try {
+        console.log("[PatientDashboard] Starting data fetch for user:", currentUser.id);
         const [appts, balance] = await Promise.all([
           getPatientAppointments(currentUser!.id),
           calculateOutstandingBalance(currentUser!.id),
         ]);
+        console.log("[PatientDashboard] Data fetched successfully:", { appointmentsCount: appts.length, balance });
         setAppointments(appts.slice(0, 5));
         setOutstandingBalance(balance);
       } catch (err) {
-        console.error('Error fetching dashboard data:', err);
+        console.error('[PatientDashboard] Error fetching dashboard data:', err);
       } finally {
         setLoading(false);
       }
@@ -81,9 +91,9 @@ export default function PatientDashboard() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
-        <StatCard icon="📋" number={appointments.length} label="Total Appointments" accent="border-brand-primary" />
-        <StatCard icon="💳" number={`₱${outstandingBalance.toFixed(2)}`} label="Outstanding Balance" accent="border-brand-primary" href="/billing" />
-        <StatCard icon="📅" number={formatDate(appointments[0]?.appointment_date ?? '')} label="Next Appointment" accent="border-brand-primary" />
+        <StatCard icon="" number={appointments.length} label="Total Appointments" accent="border-brand-primary" />
+        <StatCard icon="" number={`₱${outstandingBalance.toFixed(2)}`} label="Outstanding Balance" accent="border-brand-primary" href="/billing" />
+        <StatCard icon="" number={formatDate(appointments[0]?.appointment_date ?? '')} label="Next Appointment" accent="border-brand-primary" />
       </div>
     
       <div className="bg-bg-surface rounded-2xl shadow-sm border border-border-card p-6 mb-6">
@@ -112,9 +122,8 @@ export default function PatientDashboard() {
           </div>
         ) : (
           <div className="text-center py-10">
-            <p className="text-4xl mb-3">🗓️</p>
             <p className="text-text-secondary font-medium">No appointments yet</p>
-            <Link href="/appointments" className="text-text-link text-sm font-medium mt-1 inline-block hover:underline">Book your first appointment →</Link>
+            <Link href="/appointments" className="text-text-link text-sm font-medium mt-2 inline-block hover:underline">Book your first appointment →</Link>
           </div>
         )}
       </div>
