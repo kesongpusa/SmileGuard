@@ -95,3 +95,4 @@ Thumbs.db
 # ============ Project-specific ============
 CHANGES-GUIDE.md
 /eas.json
+/.env.example
