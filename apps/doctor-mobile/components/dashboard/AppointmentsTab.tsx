@@ -25,14 +25,32 @@ export default function AppointmentsTab({
   styles,
 }: AppointmentsTabProps) {
   const [searchQuery, setSearchQuery] = useState<string>("");
-  const [appointmentFilterBy, setAppointmentFilterBy] = useState<'all' | 'scheduled' | 'completed'>('all');
+  const [appointmentFilterBy, setAppointmentFilterBy] = useState<'all' | 'scheduled' | 'completed' | 'cancelled' | 'no-show'>('all');
   const [editingAppointmentId, setEditingAppointmentId] = useState<string | null>(null);
   const [editingStatus, setEditingStatus] = useState<'scheduled' | 'completed' | 'cancelled' | 'no-show'>('scheduled');
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
 
+  // Helper to get today's date in YYYY-MM-DD format
+  const getTodayFormatted = (): string => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const [selectedDate, setSelectedDate] = useState<string>(getTodayFormatted());
+
   const STATUS_OPTIONS = ['scheduled', 'completed', 'cancelled', 'no-show'] as const;
+
+  // Calendar format helper (used throughout component)
+  const formatDate = (date: Date): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
 
   const getStatusColor = (status: string) => {
     if (status === 'scheduled') return '#FFC107';
@@ -42,12 +60,13 @@ export default function AppointmentsTab({
     return '#999';
   };
 
-  // Calendar functions
-  const formatDate = (date: Date): string => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
+  const getFilterBadgeColor = () => {
+    if (appointmentFilterBy === 'all') return '#0b7fab';
+    if (appointmentFilterBy === 'scheduled') return '#FFC107';
+    if (appointmentFilterBy === 'completed') return '#4CAF50';
+    if (appointmentFilterBy === 'cancelled') return '#F44336';
+    if (appointmentFilterBy === 'no-show') return '#9C27B0';
+    return '#0b7fab';
   };
 
   const getDaysInMonth = (date: Date) => {
@@ -59,7 +78,15 @@ export default function AppointmentsTab({
   };
 
   const getAppointmentCountForDate = (dateStr: string) => {
-    return appointments.filter(apt => apt.date === dateStr).length;
+    const appointmentsForDate = appointments.filter(apt => apt.date === dateStr);
+    
+    // Apply the same filtering logic as the appointments list
+    if (appointmentFilterBy === 'all') return appointmentsForDate.length;
+    if (appointmentFilterBy === 'scheduled') return appointmentsForDate.filter(apt => apt.status !== 'completed').length;
+    if (appointmentFilterBy === 'completed') return appointmentsForDate.filter(apt => apt.status === 'completed').length;
+    if (appointmentFilterBy === 'cancelled') return appointmentsForDate.filter(apt => apt.status === 'cancelled').length;
+    if (appointmentFilterBy === 'no-show') return appointmentsForDate.filter(apt => apt.status === 'no-show').length;
+    return appointmentsForDate.length;
   };
 
   const isUnavailableDay = (date: Date) => {
@@ -112,6 +139,8 @@ export default function AppointmentsTab({
     if (appointmentFilterBy === 'all') return matchesSearch && matchesDate;
     if (appointmentFilterBy === 'scheduled') return matchesSearch && matchesDate && apt.status !== 'completed';
     if (appointmentFilterBy === 'completed') return matchesSearch && matchesDate && apt.status === 'completed';
+    if (appointmentFilterBy === 'cancelled') return matchesSearch && matchesDate && apt.status === 'cancelled';
+    if (appointmentFilterBy === 'no-show') return matchesSearch && matchesDate && apt.status === 'no-show';
     return matchesSearch && matchesDate;
   });
 
@@ -119,7 +148,7 @@ export default function AppointmentsTab({
     <SafeAreaView style={{ flex: 1, backgroundColor: "#f0f8ff" }}>
       <ScrollView style={{ flex: 1 }}>
         {/* Header Section with Search and Filters */}
-        <View style={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 12 }}>
+        <View style={{ paddingHorizontal: 16 }}>
           <TextInput
             style={{
               backgroundColor: '#fff',
@@ -178,6 +207,32 @@ export default function AppointmentsTab({
             >
               <Text style={{ fontSize: 12, color: appointmentFilterBy === 'completed' ? '#fff' : '#333', fontWeight: '500' }}>Completed</Text>
             </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setAppointmentFilterBy('cancelled')}
+              style={{
+                paddingHorizontal: 12,
+                paddingVertical: 6,
+                borderRadius: 16,
+                backgroundColor: appointmentFilterBy === 'cancelled' ? '#0b7fab' : '#e0e0e0',
+                borderWidth: 1,
+                borderColor: appointmentFilterBy === 'cancelled' ? '#0b7fab' : '#ccc',
+              }}
+            >
+              <Text style={{ fontSize: 12, color: appointmentFilterBy === 'cancelled' ? '#fff' : '#333', fontWeight: '500' }}>Cancelled</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setAppointmentFilterBy('no-show')}
+              style={{
+                paddingHorizontal: 12,
+                paddingVertical: 6,
+                borderRadius: 16,
+                backgroundColor: appointmentFilterBy === 'no-show' ? '#0b7fab' : '#e0e0e0',
+                borderWidth: 1,
+                borderColor: appointmentFilterBy === 'no-show' ? '#0b7fab' : '#ccc',
+              }}
+            >
+              <Text style={{ fontSize: 12, color: appointmentFilterBy === 'no-show' ? '#fff' : '#333', fontWeight: '500' }}>No-show</Text>
+            </TouchableOpacity>
           </View>
 
           {/* Calendar View */}
@@ -229,7 +284,7 @@ export default function AppointmentsTab({
                 return (
                   <TouchableOpacity
                     key={day}
-                    onPress={() => !isUnavailable && setSelectedDate(isSelected ? null : dateStr)}
+                    onPress={() => !isUnavailable && setSelectedDate(dateStr)}
                     disabled={isUnavailable}
                     style={{
                       width: '14.28%',
@@ -249,7 +304,7 @@ export default function AppointmentsTab({
                     {!isUnavailable && appointmentCount > 0 && (
                       <View
                         style={{
-                          backgroundColor: isSelected ? '#fff' : '#0b7fab',
+                          backgroundColor: isSelected ? '#fff' : getFilterBadgeColor(),
                           borderRadius: 8,
                           width: 14,
                           height: 14,
@@ -258,7 +313,7 @@ export default function AppointmentsTab({
                           marginTop: 2,
                         }}
                       >
-                        <Text style={{ fontSize: 9, fontWeight: 'bold', color: isSelected ? '#0b7fab' : '#fff' }}>
+                        <Text style={{ fontSize: 9, fontWeight: 'bold', color: isSelected ? getFilterBadgeColor() : '#fff' }}>
                           {appointmentCount}
                         </Text>
                       </View>
