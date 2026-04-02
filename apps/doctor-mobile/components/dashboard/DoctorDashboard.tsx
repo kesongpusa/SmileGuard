@@ -72,6 +72,7 @@ export default function DoctorDashboard({ user, onLogout }: DoctorDashboardProps
   const [originalPatient, setOriginalPatient] = useState<AppointmentType | null>(null);
   const [showAllPatients, setShowAllPatients] = useState(false);
   const [patientSearchQuery, setPatientSearchQuery] = useState<string>("");
+  const [patientSortBy, setPatientSortBy] = useState<'name' | 'date' | 'service'>('name');
   const [showServiceDropdown, setShowServiceDropdown] = useState(false);
   const [showTimeDropdown, setShowTimeDropdown] = useState(false);
   const [showGenderDropdown, setShowGenderDropdown] = useState(false);
@@ -259,6 +260,18 @@ export default function DoctorDashboard({ user, onLogout }: DoctorDashboardProps
   const isFieldChanged = (fieldName: keyof AppointmentType): boolean => {
     if (!originalPatient || !editedPatient) return false;
     return originalPatient[fieldName] !== editedPatient[fieldName];
+  };
+
+  const sortPatients = (patientsToSort: AppointmentType[]): AppointmentType[] => {
+    const sorted = [...patientsToSort];
+    if (patientSortBy === 'name') {
+      sorted.sort((a, b) => a.name.localeCompare(b.name));
+    } else if (patientSortBy === 'date') {
+      sorted.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    } else if (patientSortBy === 'service') {
+      sorted.sort((a, b) => a.service.localeCompare(b.service));
+    }
+    return sorted;
   };
 
   const handleSavePatient = () => {
@@ -787,7 +800,7 @@ export default function DoctorDashboard({ user, onLogout }: DoctorDashboardProps
                         <Text style={{ fontSize: 16, color: '#0b7fab', fontWeight: 'bold' }}>✕</Text>
                       </TouchableOpacity>
                     </View>
-                    <View style={{ paddingHorizontal: 16, paddingVertical: 12 }}>
+                    <View style={{ paddingHorizontal: 16, paddingVertical: 12, borderBottomColor: '#ddd', borderBottomWidth: 1 }}>
                       <TextInput
                         style={{
                           backgroundColor: '#fff',
@@ -798,26 +811,45 @@ export default function DoctorDashboard({ user, onLogout }: DoctorDashboardProps
                           paddingVertical: 10,
                           fontSize: 14,
                           color: '#333',
+                          marginBottom: 12,
                         }}
                         placeholder="Search patients by name, service..."
                         placeholderTextColor="#999"
                         value={patientSearchQuery}
                         onChangeText={setPatientSearchQuery}
                       />
+                      <View style={{ flexDirection: 'row', gap: 8, justifyContent: 'flex-start', flexWrap: 'wrap' }}>
+                        <Text style={{ fontSize: 12, fontWeight: 'bold', color: '#666', alignSelf: 'center' }}>Sort by:</Text>
+                        <TouchableOpacity
+                          onPress={() => setPatientSortBy('name')}
+                          style={{
+                            paddingHorizontal: 12,
+                            paddingVertical: 6,
+                            borderRadius: 16,
+                            backgroundColor: patientSortBy === 'name' ? '#0b7fab' : '#e0e0e0',
+                            borderWidth: 1,
+                            borderColor: patientSortBy === 'name' ? '#0b7fab' : '#ccc',
+                          }}
+                        >
+                          <Text style={{ fontSize: 12, color: patientSortBy === 'name' ? '#fff' : '#333', fontWeight: '500' }}>Name</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          onPress={() => setPatientSortBy('date')}
+                          style={{
+                            paddingHorizontal: 12,
+                            paddingVertical: 6,
+                            borderRadius: 16,
+                            backgroundColor: patientSortBy === 'date' ? '#0b7fab' : '#e0e0e0',
+                            borderWidth: 1,
+                            borderColor: patientSortBy === 'date' ? '#0b7fab' : '#ccc',
+                          }}
+                        >
+                          <Text style={{ fontSize: 12, color: patientSortBy === 'date' ? '#fff' : '#333', fontWeight: '500' }}>Date</Text>
+                        </TouchableOpacity>
+                      </View>
                     </View>
                     <ScrollView style={{ padding: 16 }}>
-                      {patients
-                        .filter((patient) =>
-                          patient.name.toLowerCase().includes(patientSearchQuery.toLowerCase()) ||
-                          patient.service.toLowerCase().includes(patientSearchQuery.toLowerCase()) ||
-                          patient.email.toLowerCase().includes(patientSearchQuery.toLowerCase()) ||
-                          patient.contact.includes(patientSearchQuery)
-                        )
-                        .length === 0 ? (
-                        <Text style={{ textAlign: 'center', color: '#999', marginTop: 20, fontSize: 16 }}>
-                          No patients found matching "{patientSearchQuery}"
-                        </Text>
-                      ) : (
+                      {sortPatients(
                         patients
                           .filter((patient) =>
                             patient.name.toLowerCase().includes(patientSearchQuery.toLowerCase()) ||
@@ -825,6 +857,20 @@ export default function DoctorDashboard({ user, onLogout }: DoctorDashboardProps
                             patient.email.toLowerCase().includes(patientSearchQuery.toLowerCase()) ||
                             patient.contact.includes(patientSearchQuery)
                           )
+                      ).length === 0 ? (
+                        <Text style={{ textAlign: 'center', color: '#999', marginTop: 20, fontSize: 16 }}>
+                          No patients found matching "{patientSearchQuery}"
+                        </Text>
+                      ) : (
+                        sortPatients(
+                          patients
+                            .filter((patient) =>
+                              patient.name.toLowerCase().includes(patientSearchQuery.toLowerCase()) ||
+                              patient.service.toLowerCase().includes(patientSearchQuery.toLowerCase()) ||
+                              patient.email.toLowerCase().includes(patientSearchQuery.toLowerCase()) ||
+                              patient.contact.includes(patientSearchQuery)
+                            )
+                        )
                           .map((patient) => (
                             <View key={patient.id} style={[styles.card, styles.shadow, { marginBottom: 25 }]}>
                               <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
