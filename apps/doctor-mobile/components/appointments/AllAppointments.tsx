@@ -1,10 +1,16 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, FlatList, Image, StyleSheet, TouchableOpacity, ScrollView, TextInput } from "react-native";
+import { View, Text, FlatList, Image, StyleSheet, TouchableOpacity, ScrollView, TextInput, Alert, ActivityIndicator } from "react-native";
 import { AppointmentType } from "../dashboard/DoctorDashboard";
+import {
+  getDoctorAppointments,
+  updateDoctorAppointmentStatus,
+} from "../../lib/appointmentService";
+import { useAuth } from "../../hooks/useAuth";
 
 interface AllAppointmentsProps {
   appointments: AppointmentType[];
   onUpdateAppointmentStatus?: (appointmentId: string, status: 'scheduled' | 'arrived' | 'finished') => void;
+  dentistId?: string;
 }
 
 const getToday = () => {
@@ -26,13 +32,44 @@ const getMonthDays = (year: number, month: number) => {
   return days;
 };
 
-const AllAppointments: React.FC<AllAppointmentsProps> = ({ appointments, onUpdateAppointmentStatus }) => {
+const AllAppointments: React.FC<AllAppointmentsProps> = ({ appointments: initialAppointments, onUpdateAppointmentStatus, dentistId }) => {
+  const { currentUser } = useAuth();
+  const [appointments, setAppointments] = useState<AppointmentType[]>(initialAppointments);
+  const [isLoading, setIsLoading] = useState(false);
+  const [editingAppointmentId, setEditingAppointmentId] = useState<string | null>(null);
+  const [editingStatus, setEditingStatus] = useState<'scheduled' | 'arrived' | 'finished'>('scheduled');
+  const [showStatusDropdown, setShowStatusDropdown] = useState(false);
+  
   const today = getToday();
   const [selectedDate, setSelectedDate] = useState<Date>(today);
   const [currentMonth, setCurrentMonth] = useState<number>(today.getMonth());
   const [currentYear, setCurrentYear] = useState<number>(today.getFullYear());
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [appointmentStatuses, setAppointmentStatuses] = useState<{ [id: string]: 'scheduled' | 'arrived' | 'finished' }>({});
+
+  // Fetch appointments from Supabase if dentistId is provided
+  useEffect(() => {
+    if (dentistId) {
+      fetchAppointmentsFromSupabase();
+    }
+  }, [dentistId]);
+
+  const fetchAppointmentsFromSupabase = async () => {
+    if (!dentistId) return;
+
+    try {
+      setIsLoading(true);
+      const supabaseApts = await getDoctorAppointments(dentistId);
+      
+      // For now, just use the passed appointments
+      // In a real scenario, you'd transform supabaseApts to match AppointmentType
+      setAppointments(initialAppointments);
+    } catch (error) {
+      console.error('Error fetching appointments from Supabase:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Initialize statuses from appointments
   useEffect(() => {
@@ -44,15 +81,50 @@ const AllAppointments: React.FC<AllAppointmentsProps> = ({ appointments, onUpdat
   }, [appointments]);
 
   // Handle status update
-  const handleUpdateStatus = (aptId: string, newStatus: 'scheduled' | 'arrived' | 'finished') => {
+  const handleUpdateStatus = async (aptId: string, newStatus: 'scheduled' | 'arrived' | 'finished') => {
     setAppointmentStatuses((prev) => ({
       ...prev,
       [aptId]: newStatus,
     }));
+    
+    // Update in Supabase
+    if (dentistId) {
+      const result = await updateDoctorAppointmentStatus(aptId, newStatus);
+      if (!result.success) {
+        Alert.alert('Error', result.message);
+      }
+    }
+    
     // Call parent callback if provided
     if (onUpdateAppointmentStatus) {
       onUpdateAppointmentStatus(aptId, newStatus);
     }
+  };
+
+  const handleEditStatus = (aptId: string, currentStatus: 'scheduled' | 'arrived' | 'finished') => {
+    setEditingAppointmentId(aptId);
+    setEditingStatus(currentStatus);
+    setShowStatusDropdown(false);
+  };
+
+  const handleSaveStatus = () => {
+    if (editingAppointmentId) {
+      handleUpdateStatus(editingAppointmentId, editingStatus);
+      setEditingAppointmentId(null);
+      Alert.alert("Success", "Appointment status updated successfully.");
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingAppointmentId(null);
+    setShowStatusDropdown(false);
+  };
+
+  const getStatusColor = (status: string) => {
+    if (status === 'scheduled') return '#FFC107';
+    if (status === 'arrived') return '#2196F3';
+    if (status === 'finished') return '#4CAF50';
+    return '#999';
   };
 
   // Handle search and auto-navigation

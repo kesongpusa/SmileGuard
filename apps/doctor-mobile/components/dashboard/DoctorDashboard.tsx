@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   Modal,
   Button,
   TextInput,
+  ActivityIndicator,
 } from "react-native";
 import { ScrollView } from "react-native-gesture-handler";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
@@ -16,6 +17,13 @@ import AppointmentCard from "./AppointmentCard";
 import StatCard from "./StatCard";
 import AllAppointments from "../appointments/AllAppointments";
 import { CurrentUser } from "@smileguard/shared-types";
+import {
+  getDoctorAppointments,
+  getTodayAppointments,
+  getPatientInfo,
+  updateDoctorAppointmentStatus,
+  getDoctorStats,
+} from "../../lib/appointmentService";
 
 interface DoctorDashboardProps {
   user: CurrentUser;
@@ -45,73 +53,69 @@ const getToday = () => {
   // en-CA gives YYYY-MM-DD in local time
 };
 
+const SERVICE_OPTIONS = ['Cleaning', 'Whitening', 'Fillings', 'Root Canal', 'Extraction', 'Braces Consultation', 'Implants Consultation', 'X-Ray', 'Check-Up'];
 
 export default function DoctorDashboard({ user, onLogout }: DoctorDashboardProps) {
   // Appointments state
   const [showAllAppointments, setShowAllAppointments] = useState(false);
   const [isEditingPatient, setIsEditingPatient] = useState(false);
   const [editedPatient, setEditedPatient] = useState<AppointmentType | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [stats, setStats] = useState({ totalPatients: 0, totalAppointments: 0, upcomingAppointments: 0, completedAppointments: 0 });
+  
   const today = getToday();
-  const [appointments, setAppointments] = useState<AppointmentType[]>([
-    {
-      id: "apt-1",
-      name: "Mart Emman",
-      service: "Whitening",
-      time: "10:00",
-      date: "2026-04-01",
-      age: 28,
-      gender: "Male",
-      contact: "0917-123-4567",
-      email: "mart.emman@email.com",
-      notes: "Patient requests extra numbing gel. History of sensitivity.",
-      imageUrl: require("../../assets/images/researchers/mart.jpg"),
-    },
-    {
-      id: "apt-2",
-      name: "Jendri Jacin",
-      service: "Aligners",
-      time: "13:00",
-      date: "2026-04-02",
-      age: 34,
-      gender: "Male",
-      contact: "0918-234-5678",
-      email: "jendri.jacin@email.com",
-      notes: "First time for aligners. No allergies reported.",
-      imageUrl: require("../../assets/images/researchers/jendri.jpg"),
-    },
-    {
-      id: "apt-3",
-      name: "Kyler Per",
-      service: "Root Canals",
-      time: "15:00",
-      date: "2026-03-30",
-      age: 41,
-      gender: "Male",
-      contact: "0919-345-6789",
-      email: "kyler.per@email.com",
-      notes: "Follow-up for root canal. Mild swelling last visit.",
-      imageUrl: require("../../assets/images/researchers/kyler.jpg"),
-    },
-  ]);
+  const [appointments, setAppointments] = useState<AppointmentType[]>([]);
+  const [requests, setRequests] = useState<AppointmentType[]>([]);
 
-  // Requests state
-  const [requests, setRequests] = useState<AppointmentType[]>([
-    {
-      id: "req-1",
-      name: "Marie Yan",
-      service: "Cleaning",
-      time: "16:00",
-      date: "2026-04-01",
-      age: 25,
-      gender: "Female",
-      contact: "0917-555-1234",
-      email: "marie.yan@email.com",
-      notes: "Request for cleaning. No known allergies.",
-      imageUrl: require("../../assets/images/researchers/mariel.jpg"),
-      initials: "MY",
-    },
-    // Add more requests as needed
-  ]);
+  // Fetch appointments from Supabase on component mount
+  useEffect(() => {
+    fetchAppointments();
+  }, [user?.id]);
+
+  const fetchAppointments = async () => {
+    if (!user?.id) return;
+
+    try {
+      setIsLoading(true);
+      
+      // Get doctor's appointments
+      const [doctorApts, doctorStats] = await Promise.all([
+        getDoctorAppointments(user.id),
+        getDoctorStats(user.id),
+      ]);
+
+      setStats(doctorStats);
+
+      // Transform appointments to match AppointmentType format
+      const transformedApts = await Promise.all(
+        doctorApts.map(async (apt) => {
+          const patient = await getPatientInfo(apt.patient_id);
+
+          return {
+            id: apt.id,
+            name: patient?.name || 'Unknown Patient',
+            service: apt.service,
+            time: apt.appointment_time,
+            date: apt.appointment_date,
+            age: 0, // Age not available in profiles table
+            gender: patient?.role || 'Not specified',
+            contact: patient?.email || '',
+            email: patient?.email || '',
+            notes: apt.notes || '',
+            imageUrl: 'https://via.placeholder.com/60', // Placeholder since we don't have image URLs
+            status: (apt.status as 'scheduled' | 'arrived' | 'finished') || 'scheduled',
+          };
+        })
+      );
+
+      setAppointments(transformedApts);
+    } catch (error) {
+      console.error('Error fetching appointments:', error);
+      Alert.alert('Error', 'Failed to load appointments');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const todayAppointments = appointments.filter(apt => apt.date === today);
 
@@ -157,10 +161,19 @@ export default function DoctorDashboard({ user, onLogout }: DoctorDashboardProps
     setEditedPatient(null);
   };
 
-  const handleUpdateAppointmentStatus = (appointmentId: string, status: 'scheduled' | 'arrived' | 'finished') => {
+  const handleUpdateAppointmentStatus = async (appointmentId: string, status: 'scheduled' | 'arrived' | 'finished') => {
+    // Update local state immediately for UX
     setAppointments((prev: AppointmentType[]) =>
       prev.map((apt) => (apt.id === appointmentId ? { ...apt, status } : apt))
     );
+
+    // Update in Supabase
+    const result = await updateDoctorAppointmentStatus(appointmentId, status);
+    if (!result.success) {
+      Alert.alert('Error', result.message);
+      // Revert local state on error
+      await fetchAppointments();
+    }
   };
 
   return (
@@ -180,6 +193,12 @@ export default function DoctorDashboard({ user, onLogout }: DoctorDashboardProps
         </View>
 
         <ScrollView contentContainerStyle={styles.scrollContent}>
+          {isLoading ? (
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 40 }}>
+              <ActivityIndicator size="large" color="#0b7fab" />
+              <Text style={{ marginTop: 10, color: '#0b7fab' }}>Loading appointments...</Text>
+            </View>
+          ) : (
           <View style={styles.container}>
             <Text style={[styles.header, { marginBottom: 20 }]}>
               Welcome, {user.name}
@@ -187,9 +206,9 @@ export default function DoctorDashboard({ user, onLogout }: DoctorDashboardProps
 
             {/* Stats Panel */}
             <View style={styles.firstPanel}>
-              <StatCard number={67} label="Patients" />
-              <StatCard number={21} label="Appointments" />
-              <StatCard number={911} label="Treatments" />
+              <StatCard number={stats.totalPatients} label="Patients" />
+              <StatCard number={stats.totalAppointments} label="Appointments" />
+              <StatCard number={stats.completedAppointments} label="Completed" />
             </View>
 
             {/* Quick Actions Header */}
@@ -440,6 +459,7 @@ export default function DoctorDashboard({ user, onLogout }: DoctorDashboardProps
               </View>
             </View>
           </View>
+          )}
         </ScrollView>
       </SafeAreaView>
     </SafeAreaProvider>
