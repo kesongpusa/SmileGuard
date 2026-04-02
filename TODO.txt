@@ -93,13 +93,13 @@ add npm install @react-navigation/drawer
             - [x] Name A-Z, Z-A 
             - [x] Treatment Type
             - [x] Status
-        - [] View Record Button //directs to Patient Profile
-            - [] Patient Profile Page 
-                -[] Patient Name
-                -[] Show Status 
-                -[] Overview tab 
+        - [x] View Record Button //directs to Patient Profile
+            - [x] Patient Profile Page 
+                -[x] Patient Name
+                -[x] Show Status 
+                -[x] Overview tab 
                     - [] Appointments Lists 
-                    - [] Notes Displays 
+                    - [x] Notes Displays 
         - [] Treatment Overview Page 
             - [] Ongoing Treatments 
             - [] Completed Procedures 
@@ -115,23 +115,15 @@ add npm install @react-navigation/drawer
         - [] Generate Referral Code //if no existing account
             //mark code as used/expired
         
-    - [] Appointment Module
+    - [x] Appointment Module
         - [] Notification Page
         - [] Add Appointment Schedule 
-        - [] Sorting Date 
-        - [] Show Upcoming Appointed Schedule 
-        - [] Show Future Appointed Schedule 
+        - [x] Sorting Date 
+        - [x] Show Upcoming Appointed Schedule 
+        - [x] Show Future Appointed Schedule 
 
     - [] Analyze Module
     - [] Settings Module
-
-- [x] Homepage
-    - [x] Today Appointment
-    - [x] Appointment Request
-    - [x] Patient Details
-    - [x] Patients List
-        - [x] With a Search Function
-
  
 - [x] Appointments Page
     - [x] Today’s Appointments
@@ -140,7 +132,6 @@ add npm install @react-navigation/drawer
     - [x] Calendar View
     - [x] Search Patient 
     - [x] Update Appointment Status
-        - [x] If the patient status is completed will be removed from the list in today's appointment
 - [] Image Analyzer Page
     - [] Action Buttons
         - [] Upload Image
