@@ -48,14 +48,33 @@ const getToday = () => {
 
 const SERVICE_OPTIONS = ['Cleaning', 'Whitening', 'Fillings', 'Root Canal', 'Extraction', 'Braces Consultation', 'Implants Consultation', 'X-Ray', 'Check-Up'];
 
+const GENDER_OPTIONS = ['Male', 'Female', 'Non-binary', 'Others'];
+
+const generateTimeOptions = () => {
+  const times = [];
+  for (let hours = 9; hours <= 16; hours++) {
+    for (let minutes = 0; minutes < 60; minutes += 30) {
+      if (hours === 16 && minutes > 30) break;
+      const timeStr = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+      times.push(timeStr);
+    }
+  }
+  return times;
+};
+
+const TIME_OPTIONS = generateTimeOptions();
+
 export default function DoctorDashboard({ user, onLogout }: DoctorDashboardProps) {
   // Appointments state
   const [showAllAppointments, setShowAllAppointments] = useState(false);
   const [isEditingPatient, setIsEditingPatient] = useState(false);
   const [editedPatient, setEditedPatient] = useState<AppointmentType | null>(null);
+  const [originalPatient, setOriginalPatient] = useState<AppointmentType | null>(null);
   const [showAllPatients, setShowAllPatients] = useState(false);
   const [patientSearchQuery, setPatientSearchQuery] = useState<string>("");
   const [showServiceDropdown, setShowServiceDropdown] = useState(false);
+  const [showTimeDropdown, setShowTimeDropdown] = useState(false);
+  const [showGenderDropdown, setShowGenderDropdown] = useState(false);
   const today = getToday();
   const [appointments, setAppointments] = useState<AppointmentType[]>([
     {
@@ -63,7 +82,7 @@ export default function DoctorDashboard({ user, onLogout }: DoctorDashboardProps
       name: "Mart Emman",
       service: "Whitening",
       time: "10:00",
-      date: "2026-04-01",
+      date: "2026-04-02",
       age: 28,
       gender: "Male",
       contact: "0917-123-4567",
@@ -77,7 +96,7 @@ export default function DoctorDashboard({ user, onLogout }: DoctorDashboardProps
       name: "Jendri Jacin",
       service: "Aligners",
       time: "13:00",
-      date: "2026-04-01",
+      date: "2026-04-02",
       age: 34,
       gender: "Male",
       contact: "0918-234-5678",
@@ -91,7 +110,7 @@ export default function DoctorDashboard({ user, onLogout }: DoctorDashboardProps
       name: "Kyler Per",
       service: "Root Canals",
       time: "15:00",
-      date: "2026-03-30",
+      date: "2026-04-03",
       age: 41,
       gender: "Male",
       contact: "0919-345-6789",
@@ -109,7 +128,7 @@ export default function DoctorDashboard({ user, onLogout }: DoctorDashboardProps
       name: "Marie Yan",
       service: "Cleaning",
       time: "16:00",
-      date: "2026-04-01",
+      date: "2026-04-02",
       age: 25,
       gender: "Female",
       contact: "0917-555-1234",
@@ -232,8 +251,14 @@ export default function DoctorDashboard({ user, onLogout }: DoctorDashboardProps
   };
 
   const handleEditPatient = () => {
+    setOriginalPatient({ ...selectedPatient });
     setEditedPatient({ ...selectedPatient });
     setIsEditingPatient(true);
+  };
+
+  const isFieldChanged = (fieldName: keyof AppointmentType): boolean => {
+    if (!originalPatient || !editedPatient) return false;
+    return originalPatient[fieldName] !== editedPatient[fieldName];
   };
 
   const handleSavePatient = () => {
@@ -265,6 +290,8 @@ export default function DoctorDashboard({ user, onLogout }: DoctorDashboardProps
       }
       
       setIsEditingPatient(false);
+      setEditedPatient(null);
+      setOriginalPatient(null);
       Alert.alert("Success", "Patient information updated successfully.");
     }
   };
@@ -272,6 +299,7 @@ export default function DoctorDashboard({ user, onLogout }: DoctorDashboardProps
   const handleCancelEdit = () => {
     setIsEditingPatient(false);
     setEditedPatient(null);
+    setOriginalPatient(null);
   };
 
   const handleUpdateAppointmentStatus = (appointmentId: string, status: 'scheduled' | 'completed' | 'cancelled' | 'no-show') => {
@@ -455,7 +483,7 @@ export default function DoctorDashboard({ user, onLogout }: DoctorDashboardProps
                           <View style={styles.editField}>
                             <Text style={styles.editLabel}>Name:</Text>
                             <TextInput
-                              style={styles.editInput}
+                              style={[styles.editInput, { backgroundColor: isFieldChanged('name') ? '#fffacd' : '#fff' }]}
                               value={editedPatient.name}
                               onChangeText={(text) => setEditedPatient({ ...editedPatient, name: text })}
                             />
@@ -463,7 +491,7 @@ export default function DoctorDashboard({ user, onLogout }: DoctorDashboardProps
                           <View style={styles.editField}>
                             <Text style={styles.editLabel}>Service:</Text>
                             <TouchableOpacity
-                              style={[styles.editInput, { justifyContent: 'center', paddingHorizontal: 10 }]}
+                              style={[styles.editInput, { justifyContent: 'center', paddingHorizontal: 10, borderWidth: 1, borderColor: '#d0d0d0', backgroundColor: isFieldChanged('service') ? '#fffacd' : '#fff' }]}
                               onPress={() => setShowServiceDropdown(!showServiceDropdown)}
                             >
                               <Text style={{ color: editedPatient.service ? '#000' : '#999' }}>
@@ -471,7 +499,7 @@ export default function DoctorDashboard({ user, onLogout }: DoctorDashboardProps
                               </Text>
                             </TouchableOpacity>
                             {showServiceDropdown && (
-                              <View style={{ backgroundColor: '#f5f5f5', borderRadius: 4, marginTop: 4}}>
+                              <View style={{ backgroundColor: '#f5f5f5', borderRadius: 4, marginTop: 4, borderWidth: 1, borderColor: '#d0d0d0' }}>
                                 <ScrollView
                                   style={{ maxHeight: 150 }}
                                   nestedScrollEnabled={true}>
@@ -501,16 +529,47 @@ export default function DoctorDashboard({ user, onLogout }: DoctorDashboardProps
                           </View>
                           <View style={styles.editField}>
                             <Text style={styles.editLabel}>Time:</Text>
-                            <TextInput
-                              style={styles.editInput}
-                              value={editedPatient.time}
-                              onChangeText={(text) => setEditedPatient({ ...editedPatient, time: text })}
-                            />
+                            <TouchableOpacity
+                              style={[styles.editInput, { justifyContent: 'center', paddingHorizontal: 10, borderWidth: 1, borderColor: '#d0d0d0', backgroundColor: isFieldChanged('time') ? '#fffacd' : '#fff' }]}
+                              onPress={() => setShowTimeDropdown(!showTimeDropdown)}
+                            >
+                              <Text style={{ color: editedPatient.time ? '#000' : '#999' }}>
+                                {editedPatient.time || 'Select a time'}
+                              </Text>
+                            </TouchableOpacity>
+                            {showTimeDropdown && (
+                              <View style={{ backgroundColor: '#f5f5f5', borderRadius: 4, marginTop: 4, borderWidth: 1, borderColor: '#d0d0d0' }}>
+                                <ScrollView
+                                  style={{ maxHeight: 150 }}
+                                  nestedScrollEnabled={true}>
+                                  {TIME_OPTIONS.map((time) => (
+                                    <TouchableOpacity
+                                      key={time}
+                                      onPress={() => {
+                                        setEditedPatient({ ...editedPatient, time });
+                                        setShowTimeDropdown(false);
+                                      }}
+                                      style={{
+                                        paddingHorizontal: 15,
+                                        paddingVertical: 12,
+                                        borderBottomWidth: 1,
+                                        borderBottomColor: '#e0e0e0',
+                                        backgroundColor: editedPatient.time === time ? '#e3f2fd' : 'transparent',
+                                      }}
+                                    >
+                                      <Text style={{ color: editedPatient.time === time ? '#1976d2' : '#333' }}>
+                                        {time}
+                                      </Text>
+                                    </TouchableOpacity>
+                                  ))}
+                                </ScrollView>
+                              </View>
+                            )}
                           </View>
                           <View style={styles.editField}>
                             <Text style={styles.editLabel}>Age:</Text>
                             <TextInput
-                              style={styles.editInput}
+                              style={[styles.editInput, { backgroundColor: isFieldChanged('age') ? '#fffacd' : '#fff' }]}
                               value={editedPatient.age.toString()}
                               onChangeText={(text) => setEditedPatient({ ...editedPatient, age: parseInt(text) || 0 })}
                               keyboardType="numeric"
@@ -518,16 +577,47 @@ export default function DoctorDashboard({ user, onLogout }: DoctorDashboardProps
                           </View>
                           <View style={styles.editField}>
                             <Text style={styles.editLabel}>Gender:</Text>
-                            <TextInput
-                              style={styles.editInput}
-                              value={editedPatient.gender}
-                              onChangeText={(text) => setEditedPatient({ ...editedPatient, gender: text })}
-                            />
+                            <TouchableOpacity
+                              style={[styles.editInput, { justifyContent: 'center', paddingHorizontal: 10, borderWidth: 1, borderColor: '#d0d0d0', backgroundColor: isFieldChanged('gender') ? '#fffacd' : '#fff' }]}
+                              onPress={() => setShowGenderDropdown(!showGenderDropdown)}
+                            >
+                              <Text style={{ color: editedPatient.gender ? '#000' : '#999' }}>
+                                {editedPatient.gender || 'Select a gender'}
+                              </Text>
+                            </TouchableOpacity>
+                            {showGenderDropdown && (
+                              <View style={{ backgroundColor: '#f5f5f5', borderRadius: 4, marginTop: 4, borderWidth: 1, borderColor: '#d0d0d0' }}>
+                                <ScrollView
+                                  style={{ maxHeight: 150 }}
+                                  nestedScrollEnabled={true}>
+                                  {GENDER_OPTIONS.map((gender) => (
+                                    <TouchableOpacity
+                                      key={gender}
+                                      onPress={() => {
+                                        setEditedPatient({ ...editedPatient, gender });
+                                        setShowGenderDropdown(false);
+                                      }}
+                                      style={{
+                                        paddingHorizontal: 15,
+                                        paddingVertical: 12,
+                                        borderBottomWidth: 1,
+                                        borderBottomColor: '#e0e0e0',
+                                        backgroundColor: editedPatient.gender === gender ? '#e3f2fd' : 'transparent',
+                                      }}
+                                    >
+                                      <Text style={{ color: editedPatient.gender === gender ? '#1976d2' : '#333' }}>
+                                        {gender}
+                                      </Text>
+                                    </TouchableOpacity>
+                                  ))}
+                                </ScrollView>
+                              </View>
+                            )}
                           </View>
                           <View style={styles.editField}>
                             <Text style={styles.editLabel}>Contact:</Text>
                             <TextInput
-                              style={styles.editInput}
+                              style={[styles.editInput, { backgroundColor: isFieldChanged('contact') ? '#fffacd' : '#fff' }]}
                               value={editedPatient.contact}
                               onChangeText={(text) => setEditedPatient({ ...editedPatient, contact: text })}
                             />
@@ -535,7 +625,7 @@ export default function DoctorDashboard({ user, onLogout }: DoctorDashboardProps
                           <View style={styles.editField}>
                             <Text style={styles.editLabel}>Email:</Text>
                             <TextInput
-                              style={styles.editInput}
+                              style={[styles.editInput, { backgroundColor: isFieldChanged('email') ? '#fffacd' : '#fff' }]}
                               value={editedPatient.email}
                               onChangeText={(text) => setEditedPatient({ ...editedPatient, email: text })}
                             />
@@ -543,7 +633,7 @@ export default function DoctorDashboard({ user, onLogout }: DoctorDashboardProps
                           <View style={styles.editField}>
                             <Text style={styles.editLabel}>Notes:</Text>
                             <TextInput
-                              style={[styles.editInput, { height: 80, textAlignVertical: 'top' }]}
+                              style={[styles.editInput, { height: 80, textAlignVertical: 'top', backgroundColor: isFieldChanged('notes') ? '#fffacd' : '#fff' }]}
                               value={editedPatient.notes}
                               onChangeText={(text) => setEditedPatient({ ...editedPatient, notes: text })}
                               multiline
@@ -561,8 +651,8 @@ export default function DoctorDashboard({ user, onLogout }: DoctorDashboardProps
                                     paddingVertical: 8,
                                     borderRadius: 20,
                                     backgroundColor: editedPatient.status === st ? getStatusBgColor(st) : '#e0e0e0',
-                                    borderWidth: editedPatient.status === st ? 2 : 0,
-                                    borderColor: editedPatient.status === st ? '#0b7fab' : 'transparent'
+                                    borderWidth: (editedPatient.status === st && isFieldChanged('status')) ? 3 : editedPatient.status === st ? 2 : 0,
+                                    borderColor: (editedPatient.status === st && isFieldChanged('status')) ? '#FFD700' : editedPatient.status === st ? '#0b7fab' : 'transparent'
                                   }}
                                   onPress={() => setEditedPatient({ ...editedPatient, status: st })}
                                 >
@@ -760,6 +850,7 @@ export default function DoctorDashboard({ user, onLogout }: DoctorDashboardProps
                                 <TouchableOpacity 
                                   style={{ paddingHorizontal: 8 }}
                                   onPress={() => {
+                                    setOriginalPatient({ ...patient });
                                     setEditedPatient({ ...patient });
                                     setIsEditingPatient(true);
                                   }}
