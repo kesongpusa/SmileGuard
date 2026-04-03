@@ -283,6 +283,48 @@ export default function AppointmentsTab({
   const formatStatus = (s: string) =>
   s.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join('-');
 
+  // Refresh button handler - fetches latest appointments from Supabase
+  const handleRefreshAppointments = async () => {
+    try {
+      setLoading(true);
+      console.log('🔄 Refreshing appointments...');
+      
+      // Refresh month appointments for calendar
+      const year = currentMonth.getFullYear();
+      const month = currentMonth.getMonth();
+      const firstDay = new Date(year, month, 1);
+      const lastDay = new Date(year, month + 1, 0);
+      const startDate = formatDate(firstDay);
+      const endDate = formatDate(lastDay);
+      
+      const monthAppointments = await getDoctorAppointments(null, startDate, endDate);
+      if (monthAppointments.length > 0) {
+        const transformed = monthAppointments.map(transformBackendAppointment);
+        setAllMonthAppointments(transformed);
+      } else {
+        setAllMonthAppointments([]);
+      }
+      console.log(`✅ Month appointments refreshed: ${monthAppointments.length} appointments found`);
+      
+      // Refresh daily appointments for selected date
+      const dayAppointments = await getDoctorAppointmentsByDate(null, selectedDate);
+      if (dayAppointments.length > 0) {
+        const transformed = dayAppointments.map(transformBackendAppointment);
+        setFetchedAppointments(transformed);
+      } else {
+        setFetchedAppointments([]);
+      }
+      console.log(`✅ Daily appointments refreshed: ${dayAppointments.length} appointments found`);
+      
+      Alert.alert('✅ Refreshed', 'Appointments updated successfully!');
+    } catch (error) {
+      console.error('❌ Error refreshing appointments:', error);
+      Alert.alert('❌ Error', 'Failed to refresh appointments. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Filter appointments - only use real Supabase data (no fallback to sample data)
   const appointmentsToDisplay = fetchedAppointments;
   const filteredAppointments = appointmentsToDisplay.filter((apt) => {
@@ -305,8 +347,35 @@ export default function AppointmentsTab({
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#f0f8ff" }}>
       <ScrollView style={{ flex: 1 }}>
+        {/* Title Section */}
+        <View style={{ paddingHorizontal: 16, paddingBottom: 8 }}>
+          <Text style={{ fontSize: 28, fontWeight: 'bold', color: '#0b7fab' }}>Appointments</Text>
+          <Text style={{ fontSize: 13, color: '#666', marginTop: 4 }}>Manage your patient appointments</Text>
+        </View>
+
         {/* Header Section with Search and Filters */}
-        <View style={{ paddingHorizontal: 16 }}>
+        <View style={{ paddingHorizontal: 16, paddingTop: 12 }}>
+          {/* Refresh Button */}
+          <TouchableOpacity
+            onPress={handleRefreshAppointments}
+            disabled={loading}
+            style={{
+              alignSelf: 'flex-end',
+              marginBottom: 12,
+              paddingHorizontal: 12,
+              paddingVertical: 8,
+              borderRadius: 8,
+              backgroundColor: loading ? '#ccc' : '#0b7fab',
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 6,
+            }}
+          >
+            <Text style={{ fontSize: 14, color: '#fff', fontWeight: '600' }}>
+              {loading ? '⟳ Refreshing...' : '⟳ Refresh'}
+            </Text>
+          </TouchableOpacity>
+          
           <TextInput
             style={{
               backgroundColor: '#fff',
@@ -536,7 +605,9 @@ export default function AppointmentsTab({
                     </View>
                   </View>
                   <Text style={{ fontSize: 12, color: '#666', marginBottom: 2 }}>{appointment.service}</Text>
-                  <Text style={{ fontSize: 11, color: '#999' }}>{appointment.date} at {appointment.time}</Text>
+                  <Text style={{ fontSize: 11, color: '#999' }}>
+                    📅 {new Date(selectedDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })} at {appointment.time}
+                  </Text>
                 </View>
                 {editingAppointmentId !== appointment.id && (
                   <TouchableOpacity
