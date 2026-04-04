@@ -127,6 +127,80 @@ export async function getPatientMedicalIntake(
 }
 
 // ─────────────────────────────────────────
+// 2B. FETCH PATIENT APPOINTMENTS
+// ─────────────────────────────────────────
+export async function getPatientAppointments(
+  patientId: string
+): Promise<
+  Array<{
+    id: string;
+    patient_id: string;
+    service: string;
+    appointment_date: string;
+    status: string;
+    created_at: string;
+  }>
+> {
+  console.log('Fetching appointments for patient:', patientId);
+  
+  const { data, error } = await supabase
+    .from('appointments')
+    .select('id, patient_id, service, appointment_date, status, created_at')
+    .eq('patient_id', patientId)
+    .order('appointment_date', { ascending: false });
+
+  if (error) {
+    console.error('Error fetching appointments:', error);
+    return [];
+  }
+
+  console.log('Appointments fetched:', data?.length || 0);
+  return data || [];
+}
+
+// ─────────────────────────────────────────
+// 2C. UPDATE APPOINTMENT STATUS
+// ─────────────────────────────────────────
+export async function updateAppointmentStatus(
+  appointmentId: string,
+  status: string
+): Promise<{ success: boolean; message: string }> {
+  console.log('Updating appointment status:', appointmentId, status);
+  
+  const { error } = await supabase
+    .from('appointments')
+    .update({ status })
+    .eq('id', appointmentId);
+
+  if (error) {
+    console.error('Error updating appointment status:', error);
+    return { success: false, message: 'Failed to update appointment' };
+  }
+
+  console.log('Appointment status updated successfully');
+  return { success: true, message: 'Appointment status updated' };
+}
+
+// ─────────────────────────────────────────
+// 2D. AUTO-UPDATE PAST APPOINTMENTS
+// ─────────────────────────────────────────
+export async function updatePastAppointmentsToNoShow(
+  appointments: any[]
+): Promise<void> {
+  const now = new Date();
+  
+  for (const appt of appointments) {
+    const apptDate = new Date(appt.appointment_date);
+    
+    // If appointment is in the past and status is not already no-show or completed
+    if (apptDate < now && appt.status !== 'no-show' && appt.status !== 'completed') {
+      console.log('Auto-updating past appointment to no-show:', appt.id);
+      await updateAppointmentStatus(appt.id, 'no-show');
+    }
+  }
+}
+
+// ─────────────────────────────────────────
 // 3. FETCH COMPLETE PATIENT DATA
 // ─────────────────────────────────────────
 export async function getCompletePatientData(patientId: string): Promise<{

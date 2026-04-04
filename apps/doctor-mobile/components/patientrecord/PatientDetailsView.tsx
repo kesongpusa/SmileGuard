@@ -10,8 +10,9 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { getPatientMedicalIntake } from "../../lib/profilesPatients";
+import { getPatientMedicalIntake, getPatientAppointments, updatePastAppointmentsToNoShow } from "../../lib/profilesPatients";
 import { MedicalIntake } from "../../types/index";
+import AppointmentHistory from "../appointments/appointmentHistory";
 
 export type AppointmentType = {
   id: string;
@@ -93,15 +94,78 @@ const formatDateOfBirth = (dateStr: string): string => {
   }
 };
 
+const categorizeAppointments = (appointments: any[]) => {
+  const now = new Date();
+  const past: any[] = [];
+  const current: any[] = [];
+  const future: any[] = [];
+
+  appointments.forEach((appt) => {
+    const apptDate = new Date(appt.appointment_date);
+    const diffMs = apptDate.getTime() - now.getTime();
+    const diffDays = diffMs / (1000 * 60 * 60 * 24);
+
+    // Current: within today
+    if (diffDays >= 0 && diffDays < 1) {
+      current.push(appt);
+    }
+    // Future: more than 1 day away
+    else if (diffDays >= 1) {
+      future.push(appt);
+    }
+    // Past: more than 1 day ago
+    else {
+      past.push(appt);
+    }
+  });
+
+  return { past, current, future };
+};
+
 export default function PatientDetailsView({ visible, patient, onClose, onEdit }: PatientDetailsViewProps) {
   const [medicalIntake, setMedicalIntake] = useState<MedicalIntake | null>(null);
+  const [appointments, setAppointments] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [showAppointmentHistory, setShowAppointmentHistory] = useState(false);
+  const [scrollY, setScrollY] = useState(0);
 
   useEffect(() => {
     if (visible && patient?.id) {
-      loadMedicalIntake(patient.id);
+      // Immediately clear old data and show loading
+      setMedicalIntake(null);
+      setAppointments([]);
+      setLoading(true);
+      
+      // Load new patient data
+      loadPatientData(patient.id);
     }
   }, [visible, patient?.id]);
+
+  const loadPatientData = async (patientId: string) => {
+    try {
+      // Load both in parallel
+      const [intake, appts] = await Promise.all([
+        getPatientMedicalIntake(patientId),
+        getPatientAppointments(patientId),
+      ]);
+
+      // Update medical intake
+      setMedicalIntake(intake);
+      console.log('Loaded medical intake:', intake);
+
+      // Auto-update past appointments to no-show status
+      await updatePastAppointmentsToNoShow(appts);
+
+      // Reload appointments to get updated statuses
+      const updatedAppts = await getPatientAppointments(patientId);
+      setAppointments(updatedAppts);
+      console.log('Loaded appointments:', updatedAppts.length);
+    } catch (error) {
+      console.error('Error loading patient data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const loadMedicalIntake = async (patientId: string) => {
     setLoading(true);
@@ -116,7 +180,49 @@ export default function PatientDetailsView({ visible, patient, onClose, onEdit }
     }
   };
 
+  const loadAppointments = async (patientId: string) => {
+    try {
+      const appts = await getPatientAppointments(patientId);
+      
+      // Auto-update past appointments to no-show status
+      await updatePastAppointmentsToNoShow(appts);
+      
+      // Reload appointments to get updated statuses
+      const updatedAppts = await getPatientAppointments(patientId);
+      setAppointments(updatedAppts);
+      console.log('Loaded appointments:', updatedAppts.length);
+    } catch (error) {
+      console.error('Error loading appointments:', error);
+    }
+  };
+
   if (!patient) return null;
+
+  // Show full-page loading screen while data is being fetched
+  if (loading) {
+    return (
+      <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: "#f9f9f9" }}>
+          {/* Header */}
+          <View style={styles.header}>
+            <TouchableOpacity onPress={onClose}>
+              <Text style={styles.closeButton}>✕</Text>
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Patient Details</Text>
+            <View style={{ width: 30 }} />
+          </View>
+
+          {/* Loading Screen */}
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+            <ActivityIndicator size="large" color="#0b7fab" />
+            <Text style={{ marginTop: 12, fontSize: 14, color: '#0b7fab', fontWeight: '600' }}>
+              Loading patient details...
+            </Text>
+          </View>
+        </SafeAreaView>
+      </Modal>
+    );
+  }
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
@@ -126,11 +232,21 @@ export default function PatientDetailsView({ visible, patient, onClose, onEdit }
           <TouchableOpacity onPress={onClose}>
             <Text style={styles.closeButton}>✕</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Patient Details</Text>
+          <Text style={styles.headerTitle}>
+            {scrollY > 100 ? patient.name : "Patient Details"}
+          </Text>
           <View style={{ width: 30 }} />
         </View>
 
-        <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 20 }}>
+        <ScrollView 
+          style={styles.container} 
+          contentContainerStyle={{ paddingBottom: 20 }}
+          onScroll={(event) => {
+            const offsetY = event.nativeEvent.contentOffset.y;
+            setScrollY(offsetY);
+          }}
+          scrollEventThrottle={16}
+        >
           {/* Patient Profile Section */}
           <View style={styles.profileSection}>
             <Image
@@ -168,12 +284,7 @@ export default function PatientDetailsView({ visible, patient, onClose, onEdit }
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Medical History</Text>
             <View style={styles.infoContainer}>
-              {loading ? (
-                <View style={{ alignItems: 'center', paddingVertical: 12 }}>
-                  <ActivityIndicator size="small" color="#0b7fab" />
-                  <Text style={{ marginTop: 8, color: '#0b7fab', fontSize: 12 }}>Loading medical records...</Text>
-                </View>
-              ) : medicalIntake ? (
+              {medicalIntake ? (
                 <>
                   <DetailRow label="Allergies" value={medicalIntake.allergies || "None"} />
                   <DetailRow label="Current Medications" value={medicalIntake.currentMedications || "None"} />
@@ -200,17 +311,34 @@ export default function PatientDetailsView({ visible, patient, onClose, onEdit }
             </View>
           </View>
 
-          {/* Appointment Information (if available) */}
-          {patient.date && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Appointment Information</Text>
-              <View style={styles.infoContainer}>
-                <DetailRow label="Date" value={formatDate(patient.date)} />
-                {patient.time && <DetailRow label="Time" value={patient.time} />}
-                {patient.service && <DetailRow label="Service" value={patient.service} />}
-              </View>
+          {/* All Appointments History */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Appointments History</Text>
+            <View style={styles.infoContainer}>
+              {appointments.length === 0 ? (
+                <Text style={styles.noDataText}>No appointments found</Text>
+              ) : (
+                <>
+                  {/* Show only 3 latest appointments */}
+                  {appointments.slice(0, 3).map((appt: any) => (
+                    <AppointmentRow key={appt.id} appointment={appt} />
+                  ))}
+                  
+                  {/* See More Button */}
+                  {appointments.length > 3 && (
+                    <TouchableOpacity 
+                      style={styles.seeMoreButton}
+                      onPress={() => setShowAppointmentHistory(true)}
+                    >
+                      <Text style={styles.seeMoreText}>
+                        See All ({appointments.length}) →
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                </>
+              )}
             </View>
-          )}
+          </View>
 
           {/* Additional Information */}
           <View style={styles.section}>
@@ -245,6 +373,21 @@ export default function PatientDetailsView({ visible, patient, onClose, onEdit }
           </View>
         </View>
       </SafeAreaView>
+
+      {/* Appointment History Modal */}
+      {showAppointmentHistory && patient && (
+        <Modal
+          visible={showAppointmentHistory}
+          animationType="slide"
+          onRequestClose={() => setShowAppointmentHistory(false)}
+        >
+          <AppointmentHistory
+            patientId={patient.id}
+            patientName={patient.name}
+            onBack={() => setShowAppointmentHistory(false)}
+          />
+        </Modal>
+      )}
     </Modal>
   );
 }
@@ -255,6 +398,33 @@ function DetailRow({ label, value }: { label: string; value: string }) {
     <View style={styles.detailRow}>
       <Text style={styles.detailLabel}>{label}:</Text>
       <Text style={styles.detailValue}>{value}</Text>
+    </View>
+  );
+}
+
+// Helper Component for Appointment Rows
+function AppointmentRow({ appointment }: { appointment: any }) {
+  const apptDate = new Date(appointment.appointment_date);
+  const formattedDate = apptDate.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  
+  const statusColors: { [key: string]: string } = {
+    scheduled: '#FFC107',
+    completed: '#4CAF50',
+    cancelled: '#F44336',
+    'no-show': '#9C27B0',
+  };
+
+  const statusColor = statusColors[appointment.status || 'scheduled'] || '#666';
+
+  return (
+    <View style={[styles.appointmentRow, { borderLeftColor: statusColor }]}>
+      <View style={{ flex: 1 }}>
+        <Text style={styles.appointmentService}>{appointment.service || 'General'}</Text>
+        <Text style={styles.appointmentDate}>{formattedDate}</Text>
+      </View>
+      <Text style={[styles.appointmentStatus, { color: statusColor }]}>
+        {appointment.status?.charAt(0).toUpperCase() + appointment.status?.slice(1) || 'Scheduled'}
+      </Text>
     </View>
   );
 }
@@ -372,6 +542,61 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     textAlign: 'center',
     paddingVertical: 8,
+  },
+  appointmentCategoryTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0b7fab',
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  appointmentRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 10,
+    marginBottom: 8,
+    backgroundColor: '#f9f9f9',
+    borderRadius: 6,
+    borderLeftWidth: 4,
+  },
+  appointmentService: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 4,
+  },
+  appointmentDate: {
+    fontSize: 12,
+    color: '#666',
+  },
+  appointmentStatus: {
+    fontSize: 12,
+    fontWeight: '600',
+    textAlign: 'right',
+  },
+  moreText: {
+    fontSize: 12,
+    color: '#0b7fab',
+    fontWeight: '600',
+    textAlign: 'center',
+    marginTop: 8,
+  },
+  seeMoreButton: {
+    marginTop: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: '#E3F2FD',
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#0b7fab',
+    alignItems: 'center',
+  },
+  seeMoreText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#0b7fab',
   },
   footer: {
     paddingHorizontal: 16,
