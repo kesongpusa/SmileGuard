@@ -64,7 +64,6 @@ export default function DoctorDashboard({ user, onLogout }: DoctorDashboardProps
     todayAppointments.length > 0 ? todayAppointments[0] : appointments[0]
   );
 
-
   const handlePress = (apt: AppointmentType) => {
     setSelectedPatient(apt);
   };

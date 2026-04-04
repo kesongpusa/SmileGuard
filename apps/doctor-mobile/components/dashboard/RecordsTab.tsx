@@ -191,7 +191,7 @@ export default function RecordsTab({
                   <View style={{ flex: 1 }}>
                     <Text style={{ fontWeight: 'bold', fontSize: 14, color: '#333', marginBottom: 2 }}>{patient.name}</Text>
                     <Text style={{ fontSize: 12, color: '#666' }}>{patient.email}</Text>
-                    <Text style={{ fontSize: 12, color: '#0b7fab', fontWeight: '500' }}>{patient.service}</Text>
+                    <Text style={{ fontSize: 12, color: '#0b7fab', fontWeight: '500' }}>Patient</Text>
                   </View>
                   <Text style={{ fontSize: 12, color: '#0b7fab', fontWeight: 'bold' }}>→</Text>
                 </View>
