@@ -174,29 +174,10 @@ export default function DoctorDashboard({ user, onLogout }: DoctorDashboardProps
       
       console.log('✅ Update successful in Supabase');
 
-      const appointment = appointments.find(apt => apt.id === appointmentId);
-      
-      // If marking as completed, it's for today, and shouldRemoveFromDashboard is true, remove it from today's appointments
-      if (status === 'completed' && appointment && appointment.date === today && shouldRemoveFromDashboard) {
-        const updatedAppointments = appointments.filter(apt => apt.id !== appointmentId);
-        setAppointments(updatedAppointments);
-        
-        // If the removed appointment was the selected patient, update selectedPatient
-        if (selectedPatient.id === appointmentId) {
-          const remainingTodayAppointments = updatedAppointments.filter(apt => apt.date === today);
-          if (remainingTodayAppointments.length > 0) {
-            setSelectedPatient(remainingTodayAppointments[0]);
-          } else {
-            // If no more today appointments, select the first remaining appointment
-            setSelectedPatient(updatedAppointments.length > 0 ? updatedAppointments[0] : selectedPatient);
-          }
-        }
-      } else {
-        // Otherwise, just update the status
-        setAppointments((prev) =>
-          prev.map((apt) => (apt.id === appointmentId ? { ...apt, status } : apt))
-        );
-      }
+      // Just update the status - keep all appointments visible
+      setAppointments((prev) =>
+        prev.map((apt) => (apt.id === appointmentId ? { ...apt, status } : apt))
+      );
     } catch (error) {
       console.error('Error updating appointment status:', error);
       Alert.alert('Error', 'Failed to update appointment status');

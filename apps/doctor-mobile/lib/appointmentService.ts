@@ -182,11 +182,10 @@ export async function getDoctorAppointments(
   endDate?: string
 ): Promise<DoctorAppointment[]> {
   try {
-    // Step 1: Fetch appointments
+    // Step 1: Fetch appointments (including cancelled)
     let query = supabase
       .from('appointments')
-      .select('*')
-      .neq('status', 'cancelled');
+      .select('*');
 
     // Only filter by dentistId if provided
     if (dentistId && dentistId !== 'null') {
@@ -273,12 +272,11 @@ export async function getDoctorAppointmentsByDate(
   date: string
 ): Promise<DoctorAppointment[]> {
   try {
-    // Step 1: Fetch appointments
+    // Step 1: Fetch appointments (including cancelled)
     let query = supabase
       .from('appointments')
       .select('*')
-      .eq('appointment_date', date)
-      .neq('status', 'cancelled');
+      .eq('appointment_date', date);
 
     // Only filter by dentistId if provided
     if (dentistId && dentistId !== 'null') {
