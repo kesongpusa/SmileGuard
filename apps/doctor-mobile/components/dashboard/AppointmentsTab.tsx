@@ -19,7 +19,7 @@ type AppointmentType = Appointment;
 
 interface AppointmentsTabProps {
   appointments: AppointmentType[];
-  onUpdateAppointmentStatus: (appointmentId: string, status: 'scheduled' | 'completed' | 'cancelled' | 'no-show', shouldRemoveFromDashboard?: boolean) => void;
+  onUpdateAppointmentStatus: (appointmentId: string, status: 'scheduled' | 'completed' | 'cancelled' | 'no-show', shouldRemoveFromDashboard?: boolean) => Promise<void>;
   styles: any;
 }
 
@@ -209,12 +209,46 @@ export default function AppointmentsTab({
     setSelectedDate(formatDate(today));
   };
 
-  const handleSaveStatus = () => {
+  const handleSaveStatus = async () => {
     if (editingAppointmentId) {
-      // Pass false to prevent removing the appointment from the list in the appointments tab
-      onUpdateAppointmentStatus(editingAppointmentId, editingStatus, false);
-      setEditingAppointmentId(null);
-      Alert.alert("Success", "Appointment status updated successfully.");
+      try {
+        // Pass false to prevent removing the appointment from the list in the appointments tab
+        await onUpdateAppointmentStatus(editingAppointmentId, editingStatus, false);
+        setEditingAppointmentId(null);
+        
+        // Refresh current day appointments to show updated status
+        console.log('🔄 Refreshing appointments after status update...');
+        const doctorAppointments = await getDoctorAppointmentsByDate(null, selectedDate);
+        if (doctorAppointments.length > 0) {
+          const transformed = doctorAppointments.map(transformBackendAppointment);
+          setFetchedAppointments(transformed);
+        } else {
+          setFetchedAppointments([]);
+        }
+        console.log(`✅ Day appointments refreshed`);
+        
+        // Also refresh entire month appointments for calendar
+        const year = currentMonth.getFullYear();
+        const month = currentMonth.getMonth();
+        const firstDay = new Date(year, month, 1);
+        const lastDay = new Date(year, month + 1, 0);
+        const startDate = formatDate(firstDay);
+        const endDate = formatDate(lastDay);
+        
+        const monthAppointments = await getDoctorAppointments(null, startDate, endDate);
+        if (monthAppointments.length > 0) {
+          const transformed = monthAppointments.map(transformBackendAppointment);
+          setAllMonthAppointments(transformed);
+        } else {
+          setAllMonthAppointments([]);
+        }
+        console.log(`✅ Month appointments refreshed - calendar updated`);
+        
+        Alert.alert("Success", "Appointment status updated successfully.");
+      } catch (error) {
+        console.error('Error updating status:', error);
+        Alert.alert("Error", "Failed to update appointment status.");
+      }
     }
   };
 

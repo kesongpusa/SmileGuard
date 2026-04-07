@@ -155,7 +155,7 @@ export interface DoctorAppointment {
   service: string;
   appointment_date: string; // YYYY-MM-DD
   appointment_time: string;
-  status: 'scheduled' | 'arrived' | 'finished' | 'cancelled' | 'no-show';
+  status: 'scheduled' | 'completed' | 'cancelled' | 'no-show';
   notes?: string;
   created_at?: string;
   updated_at?: string;
@@ -398,23 +398,41 @@ export async function getPatientInfo(patientId: string): Promise<PatientInfo | n
 // ─────────────────────────────────────────
 export async function updateDoctorAppointmentStatus(
   appointmentId: string,
-  status: 'scheduled' | 'arrived' | 'finished' | 'cancelled' | 'no-show'
+  status: 'scheduled' | 'completed' | 'cancelled' | 'no-show',
+  doctorId: string
 ): Promise<{ success: boolean; message: string }> {
   try {
-    const { error } = await supabase
+    console.log(`🔄 Updating appointment ${appointmentId}`);
+    console.log(`📋 Doctor: ${doctorId}, New Status: ${status}`);
+    
+    // Update appointment with doctor assignment and status
+    const { data, error } = await supabase
       .from('appointments')
-      .update({ status, updated_at: new Date().toISOString() })
-      .eq('id', appointmentId);
+      .update({ 
+        status, 
+        dentist_id: doctorId,
+        updated_at: new Date().toISOString() 
+      })
+      .eq('id', appointmentId)
+      .select();
+
+    console.log('📊 Update response:', { rowsAffected: data?.length, error });
 
     if (error) {
-      console.error('Error updating appointment status:', error);
-      return { success: false, message: 'Failed to update appointment status' };
+      console.error('❌ Supabase error:', error.message);
+      return { success: false, message: `Failed to update: ${error.message}` };
     }
 
+    if (!data || data.length === 0) {
+      console.warn('⚠️ No rows updated');
+      return { success: false, message: 'Update failed: No rows affected' };
+    }
+
+    console.log('✅ Update successful');
     return { success: true, message: 'Appointment status updated successfully' };
   } catch (err) {
-    console.error('Exception updating appointment status:', err);
-    return { success: false, message: 'Exception updating appointment status' };
+    console.error('❌ Exception:', err);
+    return { success: false, message: `Exception: ${err}` };
   }
 }
 

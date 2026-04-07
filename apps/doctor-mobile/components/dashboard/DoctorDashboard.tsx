@@ -17,6 +17,7 @@ import StatCard from "./StatCard";
 import PatientDetailsView from "../patientrecord/PatientDetailsView";
 import RecordsTab from "./RecordsTab";
 import AppointmentsTab from "./AppointmentsTab";
+import { updateDoctorAppointmentStatus } from "../../lib/appointmentService";
 import { CurrentUser } from "@smileguard/shared-types";
 import {
   Appointment,
@@ -148,29 +149,57 @@ export default function DoctorDashboard({ user, onLogout }: DoctorDashboardProps
     setOriginalPatient(null);
   };
 
-  const handleUpdateAppointmentStatus = (appointmentId: string, status: 'scheduled' | 'completed' | 'cancelled' | 'no-show', shouldRemoveFromDashboard: boolean = false) => {
-    const appointment = appointments.find(apt => apt.id === appointmentId);
-    
-    // If marking as completed, it's for today, and shouldRemoveFromDashboard is true, remove it from today's appointments
-    if (status === 'completed' && appointment && appointment.date === today && shouldRemoveFromDashboard) {
-      const updatedAppointments = appointments.filter(apt => apt.id !== appointmentId);
-      setAppointments(updatedAppointments);
-      
-      // If the removed appointment was the selected patient, update selectedPatient
-      if (selectedPatient.id === appointmentId) {
-        const remainingTodayAppointments = updatedAppointments.filter(apt => apt.date === today);
-        if (remainingTodayAppointments.length > 0) {
-          setSelectedPatient(remainingTodayAppointments[0]);
-        } else {
-          // If no more today appointments, select the first remaining appointment
-          setSelectedPatient(updatedAppointments.length > 0 ? updatedAppointments[0] : selectedPatient);
-        }
+  const handleUpdateAppointmentStatus = async (appointmentId: string, status: 'scheduled' | 'completed' | 'cancelled' | 'no-show', shouldRemoveFromDashboard: boolean = false) => {
+    try {
+      // Ensure we have a doctor ID
+      if (!user?.id) {
+        console.error('❌ No doctor ID available');
+        Alert.alert('Error', 'Doctor ID not found');
+        return;
       }
-    } else {
-      // Otherwise, just update the status
-      setAppointments((prev) =>
-        prev.map((apt) => (apt.id === appointmentId ? { ...apt, status } : apt))
-      );
+
+      console.log(`📝 Updating appointment ${appointmentId} status: ${status}`);
+      console.log(`👤 Doctor ID: ${user.id}`);
+      
+      // Update in Supabase with doctor ID
+      const result = await updateDoctorAppointmentStatus(appointmentId, status, user.id);
+      
+      console.log('📊 Update result:', result);
+      
+      if (!result.success) {
+        console.error('❌ Update failed:', result.message);
+        Alert.alert('Error', result.message);
+        return;
+      }
+      
+      console.log('✅ Update successful in Supabase');
+
+      const appointment = appointments.find(apt => apt.id === appointmentId);
+      
+      // If marking as completed, it's for today, and shouldRemoveFromDashboard is true, remove it from today's appointments
+      if (status === 'completed' && appointment && appointment.date === today && shouldRemoveFromDashboard) {
+        const updatedAppointments = appointments.filter(apt => apt.id !== appointmentId);
+        setAppointments(updatedAppointments);
+        
+        // If the removed appointment was the selected patient, update selectedPatient
+        if (selectedPatient.id === appointmentId) {
+          const remainingTodayAppointments = updatedAppointments.filter(apt => apt.date === today);
+          if (remainingTodayAppointments.length > 0) {
+            setSelectedPatient(remainingTodayAppointments[0]);
+          } else {
+            // If no more today appointments, select the first remaining appointment
+            setSelectedPatient(updatedAppointments.length > 0 ? updatedAppointments[0] : selectedPatient);
+          }
+        }
+      } else {
+        // Otherwise, just update the status
+        setAppointments((prev) =>
+          prev.map((apt) => (apt.id === appointmentId ? { ...apt, status } : apt))
+        );
+      }
+    } catch (error) {
+      console.error('Error updating appointment status:', error);
+      Alert.alert('Error', 'Failed to update appointment status');
     }
   };
 
