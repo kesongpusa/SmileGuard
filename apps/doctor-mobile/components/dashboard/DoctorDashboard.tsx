@@ -868,7 +868,23 @@ export default function DoctorDashboard({ user, onLogout }: DoctorDashboardProps
           {/* Logout Button at Bottom */}
           <TouchableOpacity
             style={styles.sidebarLogoutBtn}
-            onPress={onLogout}
+            onPress={() => {
+              Alert.alert(
+                "Confirm Logout",
+                "Are you sure you want to log out?",
+                [
+                  {
+                    text: "Cancel",
+                    style: "cancel",
+                  },
+                  {
+                    text: "Logout",
+                    style: "destructive",
+                    onPress: onLogout,
+                  },
+                ]
+              );
+            }}
             accessibilityLabel="Logout"
             accessibilityRole="button"
           >

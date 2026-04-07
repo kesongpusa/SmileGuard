@@ -12,6 +12,7 @@ import { ScrollView } from "react-native-gesture-handler";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Appointment } from "../../data/dashboardData";
 import { getAllPatients } from "../../lib/profilesPatients";
+import { useCurrentUser } from "../../hooks/useCurrentUser";
 
 // Type alias for backwards compatibility
 type AppointmentType = Appointment;
@@ -43,6 +44,7 @@ export default function RecordsTab({
   setShowPatientDetails,
   styles,
 }: RecordsTabProps) {
+  const currentUser = useCurrentUser();
   const [supabasePatients, setSupabasePatients] = useState<AppointmentType[]>([]);
   const [loadingSupabase, setLoadingSupabase] = useState(true);
 
@@ -82,6 +84,12 @@ export default function RecordsTab({
   }, []);
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#f0f8ff" }}>
+      {/* Header with Current User Name */}
+      <View style={{ paddingHorizontal: 16, paddingVertical: 16, borderBottomColor: '#ddd', borderBottomWidth: 2 }}>
+        <Text style={{ fontSize: 25, fontWeight: 'bold', color: '#0b7fab', marginBottom: 4 }}>
+          Patient Records
+        </Text>
+      </View>
       <View style={{ paddingHorizontal: 16, borderBottomColor: '#ddd', borderBottomWidth: 1 }}>
         <TextInput
           style={{
