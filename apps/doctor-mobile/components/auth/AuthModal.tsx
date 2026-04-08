@@ -56,7 +56,7 @@ export default function AuthModal({
   onSuccess,
 }: AuthModalProps) {
   // Use the auth hook directly to access login/register functions
-  const { login, register } = useAuth();
+  const { login, register, ensureRoleSet, currentUser } = useAuth();
 
   const [step, setStep] = useState(0);
   const [mode, setMode] = useState<"register" | "login">("login");
@@ -64,7 +64,7 @@ export default function AuthModal({
   const [showPassword, setShowPassword] = useState(false);
 
   const [formData, setFormData] = useState<FormData>({
-    service: "",
+    service: "General",
     name: "",
     email: "",
     password: "",
@@ -78,7 +78,7 @@ export default function AuthModal({
       setStep(0); // Show choice screen first
       setMode("login");
       setFormData({
-        service: "",
+        service: "General",
         name: "",
         email: "",
         password: "",
@@ -202,11 +202,43 @@ export default function AuthModal({
 
   const performRegister = async () => {
     try {
+      console.log("📝 Starting doctor registration...");
       await register(formData, "doctor");
+      console.log("✅ Registration completed, verifying role...");
+      
+      // Get the current user and ensure role is set to doctor
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        console.log("🔐 Doctor Registration: Ensuring role is set to doctor for user:", user.id);
+        await ensureRoleSet(user.id, "doctor");
+        console.log("✅ Role verification complete");
+      }
+      
       setStep(2); // success screen, then enter dashboard
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Registration failed. Please try again.";
-      Alert.alert("Registration Error", message);
+      let errorMessage = "Registration failed. Please try again.";
+      
+      if (err instanceof Error) {
+        const errorText = err.message.toLowerCase();
+        
+        // Handle specific error messages
+        if (errorText.includes("email")) {
+          errorMessage = "This email is already registered or invalid. Please use another email.";
+        } else if (errorText.includes("password")) {
+          errorMessage = "Password error. Please ensure it meets all requirements.";
+        } else if (errorText.includes("database")) {
+          errorMessage = "Database error. Please check your information and try again.";
+        } else if (errorText.includes("name is required")) {
+          errorMessage = "Please enter your full name.";
+        } else if (errorText.includes("required")) {
+          errorMessage = `Required field missing: ${err.message}`;
+        } else {
+          errorMessage = err.message;
+        }
+      }
+      
+      console.error("❌ Registration failed:", errorMessage);
+      Alert.alert("Registration Error", errorMessage);
       setLoading(false);
     }
   };

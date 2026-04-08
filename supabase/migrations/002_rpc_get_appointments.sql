@@ -81,7 +81,6 @@ BEGIN
   FROM appointments a
   WHERE (p_start_date IS NULL OR a.appointment_date >= p_start_date)
     AND (p_end_date IS NULL OR a.appointment_date <= p_end_date)
-    AND (p_dentist_id IS NULL OR a.dentist_id = p_dentist_id OR a.dentist_id IS NULL)
   ORDER BY a.appointment_date DESC, a.appointment_time DESC;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;

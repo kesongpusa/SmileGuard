@@ -147,7 +147,7 @@ export async function getDoctorAppointments(
     console.log(`📋 Found ${appointmentsData.length} appointments. Fetching patient profiles...`);
 
     // Step 2: Get unique patient IDs
-    const patientIds = [...new Set(appointmentsData.map(apt => apt.patient_id))];
+    const patientIds = [...new Set((appointmentsData as any[]).map((apt: any) => apt.patient_id))];
     console.log(`📋 Found ${patientIds.length} unique patients`);
 
     // Step 3: Fetch profiles for all patients
@@ -214,7 +214,10 @@ async function fallbackGetDoctorAppointments(
       .select('*');
 
     if (dentistId && dentistId !== 'null') {
-      query = query.or(`dentist_id.eq.${dentistId},dentist_id.is.null`);
+      query = query.eq('dentist_id', dentistId);
+    } else {
+      // If no dentistId provided, return empty (don't show null appointments)
+      return [];
     }
 
     if (startDate) {
@@ -389,10 +392,6 @@ async function fallbackGetAppointmentsByDate(
       .from('appointments')
       .select('*')
       .eq('appointment_date', date);
-
-    if (dentistId && dentistId !== 'null') {
-      query = query.or(`dentist_id.eq.${dentistId},dentist_id.is.null`);
-    }
 
     const { data: appointmentsData, error } = await query
       .order('appointment_time', { ascending: true });
