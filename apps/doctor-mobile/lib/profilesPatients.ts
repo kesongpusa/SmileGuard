@@ -35,79 +35,22 @@ export async function getPatientProfile(
 export async function getPatientMedicalIntake(
   patientId: string
 ): Promise<MedicalIntake | null> {
-  console.log('=== MEDICAL INTAKE FETCH DEBUG ===');
-  console.log('PatientID to query:', patientId, 'Type:', typeof patientId);
-  
-  // DEBUG: Get current logged-in user
-  const { data: { user }, error: userError } = await supabase.auth.getUser();
-  console.log('Current user:', { 
-    uid: user?.id,
-    email: user?.email,
-    error: userError
-  });
-  
-  // DEBUG: Check current user's role in profiles
-  if (user?.id) {
-    const { data: userProfile } = await supabase
-      .from('profiles')
-      .select('id, name, role')
-      .eq('id', user.id)
-      .single();
-    
-    console.log('Current user profile:', userProfile);
-  }
-  
-  // Step 1: Get ALL records (no filter) to see what exists
-  const { data: allRecords, error: allError } = await supabase
-    .from('medical_intake')
-    .select('id, patient_id')
-    .limit(10);
-  
-  console.log('Step 1 - All records in table (no filter):', {
-    count: allRecords?.length,
-    error: allError,
-    records: allRecords?.map(r => ({ id: r.id, patient_id: r.patient_id, matchesQuery: r.patient_id === patientId }))
-  });
-  
-  // Step 2: Try filtered query
-  const { data: filtered, error: filterError } = await supabase
-    .from('medical_intake')
-    .select('id, patient_id, gender, phone')
-    .eq('patient_id', patientId);
-  
-  console.log('Step 2 - Filtered query (.eq("patient_id", patientId)):', {
-    count: filtered?.length,
-    error: filterError,
-    records: filtered
-  });
-  
-  // Step 3: Try fetching ALL columns for this patient
   const { data, error } = await supabase
     .from('medical_intake')
     .select('*')
     .eq('patient_id', patientId);
 
-  console.log('Step 3 - Full record fetch:', { 
-    count: data?.length, 
-    error,
-    firstRecord: data?.[0]
-  });
-  console.log('=== END DEBUG ===');
-  
   if (error) {
-    console.error('Error fetching medical intake:', error);
     return null;
   }
 
   // If no records found, return null
   if (!data || data.length === 0) {
-    console.warn('No medical intake records found for patient:', patientId);
     return null;
   }
 
   // Use the first record
   const record = data[0];
-  console.log('Medical intake record found:', record);
 
   // Map database fields to camelCase for the app
   return {
@@ -141,8 +84,6 @@ export async function getPatientAppointments(
     created_at: string;
   }>
 > {
-  console.log('Fetching appointments for patient:', patientId);
-  
   const { data, error } = await supabase
     .from('appointments')
     .select('id, patient_id, service, appointment_date, status, created_at')
@@ -150,11 +91,9 @@ export async function getPatientAppointments(
     .order('appointment_date', { ascending: false });
 
   if (error) {
-    console.error('Error fetching appointments:', error);
     return [];
   }
 
-  console.log('Appointments fetched:', data?.length || 0);
   return data || [];
 }
 
@@ -165,19 +104,15 @@ export async function updateAppointmentStatus(
   appointmentId: string,
   status: string
 ): Promise<{ success: boolean; message: string }> {
-  console.log('Updating appointment status:', appointmentId, status);
-  
   const { error } = await supabase
     .from('appointments')
     .update({ status })
     .eq('id', appointmentId);
 
   if (error) {
-    console.error('Error updating appointment status:', error);
     return { success: false, message: 'Failed to update appointment' };
   }
 
-  console.log('Appointment status updated successfully');
   return { success: true, message: 'Appointment status updated' };
 }
 
@@ -194,7 +129,6 @@ export async function updatePastAppointmentsToNoShow(
     
     // If appointment is in the past and status is not already no-show or completed
     if (apptDate < now && appt.status !== 'no-show' && appt.status !== 'completed') {
-      console.log('Auto-updating past appointment to no-show:', appt.id);
       await updateAppointmentStatus(appt.id, 'no-show');
     }
   }
@@ -245,37 +179,23 @@ export async function getAllPatients(): Promise<
     medical_conditions?: string;
   }>
 > {
-  // First, try to fetch ALL columns from medical_intake to test access
-  const { data: allData, error: allError } = await supabase
-    .from('medical_intake')
-    .select('*');
-
-  console.log('All columns fetch result:', { count: allData?.length, allError });
-
-  // Then fetch specific columns
+  // Fetch medical intake data
   const { data: medicalData, error: medicalError } = await supabase
     .from('medical_intake')
     .select('id, patient_id, created_at, phone, gender, allergies, medical_conditions')
     .limit(100);
 
-  console.log('Medical data fetch result:', { medicalData, medicalError });
-
   if (medicalError) {
-    console.error('Error fetching medical intake:', medicalError);
     return [];
   }
 
   if (!medicalData || medicalData.length === 0) {
-    console.warn('No medical intake records found');
     // Try fallback: fetch from profiles instead and get all patient info
     return getAllPatientsFromProfiles();
   }
 
-  console.log('Found medical records:', medicalData.length);
-
   // Get unique patient IDs
   const patientIds = [...new Set(medicalData.map((m: any) => m.patient_id))];
-  console.log('Patient IDs to fetch:', patientIds);
 
   // Fetch corresponding profiles
   const { data: profileData, error: profileError } = await supabase
@@ -283,10 +203,8 @@ export async function getAllPatients(): Promise<
     .select('id, name, email, service')
     .in('id', patientIds);
 
-  console.log('Profile data fetch result:', { profileData, profileError });
-
   if (profileError) {
-    console.error('Error fetching profiles:', profileError);
+    // Continue with partial data
   }
 
   // Map profiles into a lookup object
@@ -294,8 +212,6 @@ export async function getAllPatients(): Promise<
     acc[profile.id] = profile;
     return acc;
   }, {});
-
-  console.log('Profile map:', profileMap);
 
   // Combine medical_intake with profiles
   const result = medicalData.map((item: any) => {
@@ -314,7 +230,6 @@ export async function getAllPatients(): Promise<
     };
   });
 
-  console.log('Final result:', result);
   return result;
 }
 
@@ -333,17 +248,12 @@ async function getAllPatientsFromProfiles(): Promise<
     medical_conditions?: string;
   }>
 > {
-  console.log('Using fallback: fetching from profiles table');
-  
   const { data: profilesData, error: profilesError } = await supabase
     .from('profiles')
     .select('id, name, email, service, created_at')
     .eq('role', 'patient');
 
-  console.log('Profiles fetch result:', { count: profilesData?.length, profilesError });
-
   if (profilesError || !profilesData) {
-    console.error('Error fetching profiles fallback:', profilesError);
     return [];
   }
 

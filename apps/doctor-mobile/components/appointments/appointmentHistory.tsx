@@ -9,6 +9,8 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { getPatientAppointments } from "../../lib/profilesPatients";
+import { getStatusColor, getStatusBgColor } from "../../lib/statusHelpers";
+import { formatDateWithTime } from "../../lib/dateFormatters";
 
 interface AppointmentHistoryProps {
   patientId: string;
@@ -37,36 +39,6 @@ const categorizeAppointments = (appointments: any[]) => {
   });
 
   return { past, current, future };
-};
-
-const getStatusColor = (status?: string): string => {
-  switch (status) {
-    case 'scheduled':
-      return '#FFC107';
-    case 'completed':
-      return '#4CAF50';
-    case 'cancelled':
-      return '#F44336';
-    case 'no-show':
-      return '#9C27B0';
-    default:
-      return '#666';
-  }
-};
-
-const getStatusBgColor = (status?: string): string => {
-  switch (status) {
-    case 'scheduled':
-      return '#FFF9C4';
-    case 'completed':
-      return '#C8E6C9';
-    case 'cancelled':
-      return '#FFCDD2';
-    case 'no-show':
-      return '#E1BEE7';
-    default:
-      return '#f5f5f5';
-  }
 };
 
 function AppointmentCard({ appointment }: { appointment: any }) {
@@ -127,7 +99,6 @@ export default function AppointmentHistory({
       setLoading(true);
       const appts = await getPatientAppointments(patientId);
       setAppointments(appts);
-      console.log('Loaded all appointments:', appts.length);
     } catch (error) {
       console.error('Error loading appointments:', error);
     } finally {

@@ -73,20 +73,8 @@ export default function AppointmentsTab({
 
   // Fetch all appointments for the current month on mount and when month changes
   useEffect(() => {
-    // First, check the table schema and run diagnostics
-    const runDiagnostics = async () => {
-      const { checkAppointmentsTableSchema, testDirectQuery } = await import('../../lib/appointmentService');
-      console.log('\n═══════════════════════════════════════════════════');
-      console.log('🔍 RUNNING DIAGNOSTICS');
-      console.log('═══════════════════════════════════════════════════');
-      checkAppointmentsTableSchema();
-      testDirectQuery(selectedDate);
-    };
-    runDiagnostics();
-
     const fetchMonthAppointments = async () => {
       try {
-        console.log('📅 Loading all appointments for month:', currentMonth.toDateString());
         // Get first and last day of the month
         const year = currentMonth.getFullYear();
         const month = currentMonth.getMonth();
@@ -96,11 +84,8 @@ export default function AppointmentsTab({
         const startDate = formatDate(firstDay);
         const endDate = formatDate(lastDay);
         
-        console.log(`📊 Fetching appointments from ${startDate} to ${endDate}`);
-        
         // Fetch all appointments for the month with date range
         const doctorAppointments = await getDoctorAppointments(null, startDate, endDate);
-        console.log(`📅 Fetched ${doctorAppointments.length} total appointments for the month`);
         
         if (doctorAppointments.length > 0) {
           const transformed = doctorAppointments.map(transformBackendAppointment);
@@ -112,16 +97,11 @@ export default function AppointmentsTab({
             cancelled: transformed.filter(apt => apt.status === 'cancelled').length,
             'no-show': transformed.filter(apt => apt.status === 'no-show').length,
           };
-          console.log('📊 Appointment status breakdown:', statusBreakdown);
-          
           setAllMonthAppointments(transformed);
-          console.log('📊 All month appointments loaded for calendar');
         } else {
           setAllMonthAppointments([]);
-          console.log('ℹ️ No appointments found for this month');
         }
       } catch (error) {
-        console.error('❌ Error fetching month appointments:', error);
         setAllMonthAppointments([]);
       }
     };
@@ -139,13 +119,10 @@ export default function AppointmentsTab({
         if (doctorAppointments.length > 0) {
           const transformed = doctorAppointments.map(transformBackendAppointment);
           setFetchedAppointments(transformed);
-          console.log(`✅ Loaded ${transformed.length} appointments for ${selectedDate}`);
         } else {
           setFetchedAppointments([]);
-          console.log('ℹ️ No appointments found for this date');
         }
       } catch (error) {
-        console.error('❌ Error fetching appointments:', error);
         setFetchedAppointments([]);
       } finally {
         setLoading(false);

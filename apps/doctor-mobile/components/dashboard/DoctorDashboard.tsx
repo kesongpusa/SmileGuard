@@ -23,6 +23,8 @@ import AppointmentsTab from "../navigation/AppointmentsTab";
 import SettingsTab from "../navigation/SettingsTab";
 import { updateDoctorAppointmentStatus, getDoctorAppointments } from "../../lib/appointmentService";
 import * as dashboardService from "../../lib/dashboardService";
+import { getStatusColor, getStatusBgColor } from "../../lib/statusHelpers";
+import { formatDateOfBirth, formatAppointmentDate } from "../../lib/dateFormatters";
 import { CurrentUser, Appointment as SupabaseAppointment } from "@smileguard/shared-types";
 import {
   SERVICE_OPTIONS,
@@ -146,7 +148,6 @@ export default function DoctorDashboard({ user, onLogout }: DoctorDashboardProps
       setLoadingPatients(true);
       setErrorMessage(null);
 
-      console.log('📥 Fetching ALL appointments (including cancelled) from RPC...');
       // Use RPC function to get ALL appointments including cancelled (bypasses RLS)
       const rpcAppointments = await getDoctorAppointments(user.id);
       
@@ -179,15 +180,13 @@ export default function DoctorDashboard({ user, onLogout }: DoctorDashboardProps
           noShow: transformedAppointments.filter(a => a.status === 'no-show').length,
         };
         setStats(calculatedStats);
-        console.log(`✅ Loaded ${transformedAppointments.length} total appointments from RPC (including all statuses)`);
-        console.log('✅ Stats calculated:', calculatedStats);
+
       } else {
         setAppointments([]);
         setStats({ total: 0, scheduled: 0, completed: 0, cancelled: 0, noShow: 0 });
-        console.log('ℹ️ No appointments found');
+
       }
 
-      console.log('📥 Fetching patients from Supabase...');
       const { success: patSuccess, data: patientData } = await dashboardService.fetchDoctorPatients(user.id!);
       
       if (patSuccess && patientData.length > 0) {
@@ -207,10 +206,10 @@ export default function DoctorDashboard({ user, onLogout }: DoctorDashboardProps
           patient_id: patient.id,
         }));
         setPatients(transformedPatients);
-        console.log(`✅ Loaded ${transformedPatients.length} patients`);
+
       } else {
         setPatients([]);
-        console.log('ℹ️ No patients found');
+
       }
     } catch (error) {
       console.error('❌ Error fetching dashboard data:', error);
@@ -232,7 +231,6 @@ export default function DoctorDashboard({ user, onLogout }: DoctorDashboardProps
   
   useFocusEffect(
     useCallback(() => {
-      console.log('🔄 Dashboard tab focused - refreshing data...');
       setLoadingOnTabSwitch(true);
       refreshDashboardData();
       setExpandPatientDetails(false);
@@ -345,69 +343,7 @@ export default function DoctorDashboard({ user, onLogout }: DoctorDashboardProps
         prev.map((apt) => (apt.id === appointmentId ? { ...apt, status } : apt))
       );
     } catch (error) {
-      console.error('Error updating appointment status:', error);
       Alert.alert('Error', 'Failed to update appointment status');
-    }
-  };
-
-  const getStatusBgColor = (status?: string) => {
-    if (status === 'scheduled') return '#FFC107';
-    if (status === 'completed') return '#4CAF50';
-    if (status === 'cancelled') return '#F44336';
-    if (status === 'no-show') return '#9C27B0';
-    return '#999';
-  };
-
-  // Format date of birth
-  const formatDateOfBirth = (dateStr: string): string => {
-    if (!dateStr) return "Not provided";
-    try {
-      // Handle mm/dd/YYYY format
-      if (dateStr.includes('/')) {
-        const [month, day, year] = dateStr.split('/');
-        const dateObj = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-        return dateObj.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-      }
-      
-      // Handle ISO date format
-      const date = new Date(dateStr);
-      if (!isNaN(date.getTime())) {
-        return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-      }
-      
-      return dateStr;
-    } catch {
-      return dateStr;
-    }
-  };
-
-  // Format appointment date
-  const formatAppointmentDate = (dateStr: string): string => {
-    if (!dateStr) return "Not provided";
-    try {
-      // Handle YYYY-MM-DD format
-      if (dateStr.includes('-')) {
-        const [year, month, day] = dateStr.split('-');
-        const dateObj = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-        return dateObj.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-      }
-      
-      // Handle mm/dd/YYYY format
-      if (dateStr.includes('/')) {
-        const [month, day, year] = dateStr.split('/');
-        const dateObj = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-        return dateObj.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-      }
-      
-      // Handle ISO date format
-      const date = new Date(dateStr);
-      if (!isNaN(date.getTime())) {
-        return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-      }
-      
-      return dateStr;
-    } catch {
-      return dateStr;
     }
   };
 

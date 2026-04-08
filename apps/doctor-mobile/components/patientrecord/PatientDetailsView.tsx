@@ -13,6 +13,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { getPatientMedicalIntake, getPatientAppointments, updatePastAppointmentsToNoShow } from "../../lib/profilesPatients";
 import { MedicalIntake } from "../../types/index";
 import AppointmentHistory from "../appointments/appointmentHistory";
+import { getStatusColor, getStatusBgColor } from "../../lib/statusHelpers";
+import { formatDateOfBirth } from "../../lib/dateFormatters";
 
 export type AppointmentType = {
   id: string;
@@ -37,61 +39,9 @@ interface PatientDetailsViewProps {
   onEdit?: () => void;
 }
 
-const getStatusColor = (status?: string) => {
-  switch (status) {
-    case 'scheduled':
-      return '#FFC107'; // Yellow
-    case 'completed':
-      return '#4CAF50'; // Green
-    case 'cancelled':
-      return '#F44336'; // Red
-    case 'no-show':
-      return '#9C27B0'; // Purple
-    default:
-      return '#666';
-  }
-};
-
-const getStatusBgColor = (status?: string) => {
-  switch (status) {
-    case 'scheduled':
-      return '#FFF9C4';
-    case 'completed':
-      return '#C8E6C9';
-    case 'cancelled':
-      return '#FFCDD2';
-    case 'no-show':
-      return '#E1BEE7';
-    default:
-      return '#f5f5f5';
-  }
-};
-
 const formatDate = (dateStr: string): string => {
   const date = new Date(dateStr);
   return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-};
-
-const formatDateOfBirth = (dateStr: string): string => {
-  if (!dateStr) return "Not provided";
-  try {
-    // Handle mm/dd/YYYY format
-    if (dateStr.includes('/')) {
-      const [month, day, year] = dateStr.split('/');
-      const dateObj = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-      return dateObj.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-    }
-    
-    // Handle ISO date format
-    const date = new Date(dateStr);
-    if (!isNaN(date.getTime())) {
-      return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-    }
-    
-    return dateStr;
-  } catch {
-    return dateStr;
-  }
 };
 
 const categorizeAppointments = (appointments: any[]) => {
@@ -319,10 +269,18 @@ export default function PatientDetailsView({ visible, patient, onClose, onEdit }
                 <Text style={styles.noDataText}>No appointments found</Text>
               ) : (
                 <>
-                  {/* Show only 3 latest appointments */}
-                  {appointments.slice(0, 3).map((appt: any) => (
+                  {/* Show cancelled appointments first if they exist */}
+                  {appointments.filter((appt: any) => appt.status === 'cancelled').map((appt: any) => (
                     <AppointmentRow key={appt.id} appointment={appt} />
                   ))}
+                  
+                  {/* Show other appointments (max 3) */}
+                  {appointments
+                    .filter((appt: any) => appt.status !== 'cancelled')
+                    .slice(0, 3)
+                    .map((appt: any) => (
+                      <AppointmentRow key={appt.id} appointment={appt} />
+                    ))}
                   
                   {/* See More Button */}
                   {appointments.length > 3 && (
