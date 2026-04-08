@@ -105,6 +105,64 @@ export const EMPTY_MEDICAL_INTAKE: MedicalIntake = {
 };
 
 // ─────────────────────────────────────────
+// Doctor Types
+// ─────────────────────────────────────────
+
+export interface OfficeHours {
+  [day: string]: {
+    open: string; // HH:MM format
+    close: string; // HH:MM format
+    isClosed?: boolean;
+  };
+}
+
+export interface Doctor {
+  id?: string;
+  user_id: string;
+  license_number: string;
+  specialization: string;
+  bio?: string;
+  clinic_name?: string;
+  clinic_phone?: string;
+  clinic_email?: string;
+  office_hours?: OfficeHours;
+  years_of_experience?: number;
+  qualifications?: string[];
+  is_available?: boolean;
+  availability_status?: "available" | "on-leave" | "on-vacation" | "unavailable";
+  profile_picture_url?: string;
+  is_verified?: boolean;
+  verification_date?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export const EMPTY_DOCTOR: Doctor = {
+  user_id: "",
+  license_number: "",
+  specialization: "",
+  bio: "",
+  clinic_name: "",
+  clinic_phone: "",
+  clinic_email: "",
+  office_hours: {
+    monday: { open: "09:00", close: "17:00" },
+    tuesday: { open: "09:00", close: "17:00" },
+    wednesday: { open: "09:00", close: "17:00" },
+    thursday: { open: "09:00", close: "17:00" },
+    friday: { open: "09:00", close: "17:00" },
+    saturday: { isClosed: true },
+    sunday: { isClosed: true },
+  },
+  years_of_experience: 0,
+  qualifications: [],
+  is_available: true,
+  availability_status: "available",
+  profile_picture_url: "",
+  is_verified: false,
+};
+
+// ─────────────────────────────────────────
 // Treatment Types
 // ─────────────────────────────────────────
 

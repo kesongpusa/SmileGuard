@@ -15,6 +15,7 @@ import { useAuth } from "@smileguard/shared-hooks";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Alert } from 'react-native';
 import PasswordStrengthMeter from "../ui/password-strength-meter";
+import DoctorProfileSetup from "./DoctorProfileSetup";
 import {
   FormData,
   CurrentUser,
@@ -23,6 +24,7 @@ import {
   EMPTY_MEDICAL_INTAKE,
 } from "@smileguard/shared-types";
 import { supabase } from "@smileguard/supabase-client";
+import { getDoctorProfile } from "../../lib/doctorService";
 
 // ── Input sanitisation ───────────────────────────────────────────
 // Strip anything that looks like SQL / script injection.
@@ -46,6 +48,7 @@ export interface AuthModalProps {
 // 0  → Portal entry choice  (login / register)
 // 1  → Credentials           (doctor login/register)
 // 2  → Success screen        (register only, then enter dashboard)
+// 3  → Doctor Profile Setup  (register only, password confirmation + profile details)
 // 6  → Forgot password
 // 7  → Reset email sent
 // ══════════════════════════════════════════════════════════════════
@@ -310,94 +313,70 @@ export default function AuthModal({
                 {/* ════════════ Step 1: Credentials ════════════ */}
                 {step === 1 && (
                   <View>
-                    <Text style={styles.h2}>
-                      {mode === "login" ? "Welcome Back" : "Create Account"}
+                    <Text style={[styles.h2, {marginBottom: 20}]}>
+                      {mode === "login" ? "Welcome Back" : "Ready to register?"}
                     </Text>
-                    {/* Name (register only) */}
-                    {mode === "register" && (
-                      <TextInput
-                        style={styles.input}
-                        placeholder="Full Name"
-                        value={formData.name}
-                        onChangeText={(t) => setField("name", t)}
-                      />
-                    )}
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Email"
-                      autoCapitalize="none"
-                      keyboardType="email-address"
-                      value={formData.email}
-                      onChangeText={(t) => setField("email", t)}
-                    />
-                    <View style={styles.passwordContainer}>
-                      <TextInput
-                        style={styles.passwordInput}
-                        placeholder="Password"
-                        secureTextEntry={!showPassword}
-                        value={formData.password}
-                        onChangeText={(t) => setField("password", t)}
-                      />
-                      <TouchableOpacity
-                        style={styles.passwordToggle}
-                        onPress={() => setShowPassword(!showPassword)}
-                        accessibilityLabel={showPassword ? "Hide password" : "Show password"}
-                        accessibilityRole="button"
-                      >
-                        <Text style={styles.passwordToggleText}>
-                          {showPassword ? "👁️" : "👁️‍🗨️"}
+                    {mode === "register" ? (
+                      // Show message for registration
+                      <>
+                        <Text style={[styles.p, {marginBottom: 30}]}>
+                          Click the button below to start your registration and fill in your professional details.
                         </Text>
-                      </TouchableOpacity>
-                    </View>
-
-                    {/* Password strength meter */}
-                    {mode === "register" && (
-                    <>
-                      {formData.password.length > 0 && (
-                      <View style={styles.strengthSection}>
-                        <PasswordStrengthMeter
-                          strengthPercent={strengthPercent}
+                      </>
+                    ) : (
+                      // Show login form
+                      <>
+                        <TextInput
+                          style={styles.input}
+                          placeholder="Email"
+                          autoCapitalize="none"
+                          keyboardType="email-address"
+                          value={formData.email}
+                          onChangeText={(t) => setField("email", t)}
                         />
-                        {/* Checklist */}
-                        {passwordChecks.map((c) => (
-                          <Text
-                            key={c.label}
-                            style={{
-                              color: c.met ? "#22c55e" : "#9ca3af",
-                              fontSize: 13,
-                              marginTop: 2,
-                            }}
+                        <View style={styles.passwordContainer}>
+                          <TextInput
+                            style={styles.passwordInput}
+                            placeholder="Password"
+                            secureTextEntry={!showPassword}
+                            value={formData.password}
+                            onChangeText={(t) => setField("password", t)}
+                          />
+                          <TouchableOpacity
+                            style={styles.passwordToggle}
+                            onPress={() => setShowPassword(!showPassword)}
+                            accessibilityLabel={showPassword ? "Hide password" : "Show password"}
+                            accessibilityRole="button"
                           >
-                            {c.met ? "✓" : "○"} {c.label}
-                          </Text>
-                        ))}
-                      </View>
-                      )}
-                    </>
-                    )}
-                    
-                    {mode === "login" && (
-                      <TouchableOpacity
-                        style={{ alignSelf: "flex-end", marginTop: -8, marginBottom: 12 }}
-                        onPress={() => setStep(6)}
-                      >
-                        <Text style={{ color: "#0b7fab", fontSize: 13 }}>Forgot password?</Text>
-                      </TouchableOpacity>
+                            <Text style={styles.passwordToggleText}>
+                              {showPassword ? "👁️" : "👁️‍🗨️"}
+                            </Text>
+                          </TouchableOpacity>
+                        </View>
+                        
+                        <TouchableOpacity
+                          style={{ alignSelf: "flex-end", marginTop: -8, marginBottom: 12 }}
+                          onPress={() => setStep(6)}
+                        >
+                          <Text style={{ color: "#0b7fab", fontSize: 13 }}>Forgot password?</Text>
+                        </TouchableOpacity>
+                      </>
                     )}
 
-                    {/* =======Login button======== */}
+                    {/* =======Login/Register button======== */}
                     <TouchableOpacity
                       style={[styles.btn, styles.primaryBtn, { marginTop: 12 }]}
       
                       onPress={async () => {
                         try {
-                          setLoading(true);
-                          await handleFinalize();
-                          
-                          if (mode === "login") {
-                            await performLogin();
+                          if (mode === "register") {
+                            // For register, go to the unified registration form
+                            setStep(3);
                           } else {
-                            await performRegister();
+                            // For login, validate and authenticate
+                            setLoading(true);
+                            await handleFinalize();
+                            await performLogin();
                           }
                         } catch (err) {
                           const message = err instanceof Error ? err.message : "Authentication failed. Please try again.";
@@ -414,7 +393,7 @@ export default function AuthModal({
                         <ActivityIndicator color="#fff" />
                       ) : (
                         <Text style={styles.btnText}>
-                          {mode === "login" ? "Enter Portal": "Complete Registration"}
+                          {mode === "login" ? "Enter Portal": "Start Registration"}
                           
                         </Text>
                       )}
@@ -435,6 +414,22 @@ export default function AuthModal({
                       <Text style={styles.btnText}>Enter Dashboard</Text>
                     </TouchableOpacity>
                   </View>
+                )}
+
+                {/* ════════════ Step 3: Doctor Registration Form ════════════ */}
+                {step === 3 && (
+                  <DoctorProfileSetup
+                    onSuccess={(userData) => {
+                      console.log("✅ Doctor registration completed successfully");
+                      setStep(2); // Move to success screen
+                      // Then call the app's onSuccess to enter dashboard
+                      onSuccess(userData);
+                    }}
+                    onCancel={() => {
+                      console.log("❌ User cancelled doctor registration");
+                      setStep(0); // Go back to choice screen
+                    }}
+                  />
                 )}
                 {/* ════════════ Step 6: Forgot Password ════════════ */}
                 {step === 6 && (
@@ -517,7 +512,7 @@ export default function AuthModal({
                 )}
               </View>
               {/* Close button */}
-              {step !== 2 && (
+              {step !== 2 && step !== 3 && (
                 <TouchableOpacity
                   style={styles.closeBtn}
                   onPress={async () => {

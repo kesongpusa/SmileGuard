@@ -154,7 +154,7 @@ export default function DoctorDashboard({ user, onLogout }: DoctorDashboardProps
       if (rpcAppointments && rpcAppointments.length > 0) {
         const transformedAppointments = rpcAppointments.map((apt: any) => ({
           id: apt.id || '',
-          name: apt.patient_profile?.name || 'Patient',
+          name: apt.patient_name || 'Patient',
           service: apt.service || '',
           time: apt.appointment_time || '',
           date: apt.appointment_date || '',
@@ -163,7 +163,7 @@ export default function DoctorDashboard({ user, onLogout }: DoctorDashboardProps
           contact: apt.patient_profile?.phone || '',
           email: apt.patient_profile?.email || '',
           notes: apt.notes || '',
-          imageUrl: require('../../assets/images/user.png'),
+          imageUrl: apt.patient_avatar || require('../../assets/images/user.png'),
           status: (apt.status || 'scheduled') as 'scheduled' | 'completed' | 'cancelled' | 'no-show',
           patient_id: apt.patient_id,
           dentist_id: apt.dentist_id,
