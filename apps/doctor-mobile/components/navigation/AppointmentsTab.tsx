@@ -72,6 +72,17 @@ export default function AppointmentsTab({
 
   // Fetch all appointments for the current month on mount and when month changes
   useEffect(() => {
+    // First, check the table schema and run diagnostics
+    const runDiagnostics = async () => {
+      const { checkAppointmentsTableSchema, testDirectQuery } = await import('../../lib/appointmentService');
+      console.log('\n═══════════════════════════════════════════════════');
+      console.log('🔍 RUNNING DIAGNOSTICS');
+      console.log('═══════════════════════════════════════════════════');
+      checkAppointmentsTableSchema();
+      testDirectQuery(selectedDate);
+    };
+    runDiagnostics();
+
     const fetchMonthAppointments = async () => {
       try {
         console.log('📅 Loading all appointments for month:', currentMonth.toDateString());
@@ -88,12 +99,20 @@ export default function AppointmentsTab({
         
         // Fetch all appointments for the month with date range
         const doctorAppointments = await getDoctorAppointments(null, startDate, endDate);
-        
-        console.log(`✅ Fetched ${doctorAppointments.length} total appointments for the month`);
+        console.log(`📅 Fetched ${doctorAppointments.length} total appointments for the month`);
         
         if (doctorAppointments.length > 0) {
-          // Transform backend data to match UI format
           const transformed = doctorAppointments.map(transformBackendAppointment);
+          
+          // Log breakdown by status
+          const statusBreakdown = {
+            scheduled: transformed.filter(apt => apt.status === 'scheduled').length,
+            completed: transformed.filter(apt => apt.status === 'completed').length,
+            cancelled: transformed.filter(apt => apt.status === 'cancelled').length,
+            'no-show': transformed.filter(apt => apt.status === 'no-show').length,
+          };
+          console.log('📊 Appointment status breakdown:', statusBreakdown);
+          
           setAllMonthAppointments(transformed);
           console.log('📊 All month appointments loaded for calendar');
         } else {
@@ -114,23 +133,18 @@ export default function AppointmentsTab({
     const fetchAppointmentsForDate = async () => {
       try {
         setLoading(true);
-        // Get dentist ID from localStorage or user context (you may need to adjust this)
-        // For now, pass null to get ALL appointments for the date (not filtered by doctor)
         const doctorAppointments = await getDoctorAppointmentsByDate(null, selectedDate);
         
-        console.log(`✅ Fetched ${doctorAppointments.length} appointments for ${selectedDate}`);
-        
         if (doctorAppointments.length > 0) {
-          // Transform backend data to match UI format
           const transformed = doctorAppointments.map(transformBackendAppointment);
           setFetchedAppointments(transformed);
-          console.log('📊 Transformed appointments:', transformed);
+          console.log(`✅ Loaded ${transformed.length} appointments for ${selectedDate}`);
         } else {
           setFetchedAppointments([]);
           console.log('ℹ️ No appointments found for this date');
         }
       } catch (error) {
-        console.error('❌ Error fetching appointments from backend:', error);
+        console.error('❌ Error fetching appointments:', error);
         setFetchedAppointments([]);
       } finally {
         setLoading(false);
@@ -187,8 +201,10 @@ export default function AppointmentsTab({
     
     // Apply the active filter to calendar counts
     if (appointmentFilterBy === 'all') {
-      // Show all appointments
-      return appointmentsForDate.length;
+      // Show all appointments including cancelled
+      const count = appointmentsForDate.length;
+      console.log(`✅ Calendar count for ${dateStr}: ${count} (filter: all, total appointments: ${appointmentsForDate.map(a => a.status).join(', ') || 'none'})`);
+      return count;
     } else if (appointmentFilterBy === 'scheduled') {
       // Show only scheduled/pending appointments
       return appointmentsForDate.filter(apt => apt.status === 'scheduled').length;
@@ -266,6 +282,17 @@ export default function AppointmentsTab({
         
         if (monthAppointments.length > 0) {
           const transformed = monthAppointments.map(transformBackendAppointment);
+          
+          // Log breakdown by status to verify cancelled appointments are included
+          const statusBreakdown = {
+            scheduled: transformed.filter(apt => apt.status === 'scheduled').length,
+            completed: transformed.filter(apt => apt.status === 'completed').length,
+            cancelled: transformed.filter(apt => apt.status === 'cancelled').length,
+            'no-show': transformed.filter(apt => apt.status === 'no-show').length,
+          };
+          console.log('📊 Status breakdown after update:', statusBreakdown);
+          console.log(`📅 Fetched ${transformed.length} total appointments for the month`);
+          
           setAllMonthAppointments(transformed);
           console.log(`✅ Month appointments updated - calendar will refresh`);
           
@@ -343,6 +370,16 @@ export default function AppointmentsTab({
                 const monthAppointments = await getDoctorAppointments(null, startDate, endDate);
                 if (monthAppointments.length > 0) {
                   const transformed = monthAppointments.map(transformBackendAppointment);
+                  
+                  // Log breakdown by status to verify cancelled appointments are included
+                  const statusBreakdown = {
+                    scheduled: transformed.filter(apt => apt.status === 'scheduled').length,
+                    completed: transformed.filter(apt => apt.status === 'completed').length,
+                    cancelled: transformed.filter(apt => apt.status === 'cancelled').length,
+                    'no-show': transformed.filter(apt => apt.status === 'no-show').length,
+                  };
+                  console.log('📊 Status breakdown after cancellation:', statusBreakdown);
+                  
                   setAllMonthAppointments(transformed);
                 } else {
                   setAllMonthAppointments([]);
@@ -387,6 +424,16 @@ export default function AppointmentsTab({
       const monthAppointments = await getDoctorAppointments(null, startDate, endDate);
       if (monthAppointments.length > 0) {
         const transformed = monthAppointments.map(transformBackendAppointment);
+        
+        // Log breakdown by status
+        const statusBreakdown = {
+          scheduled: transformed.filter(apt => apt.status === 'scheduled').length,
+          completed: transformed.filter(apt => apt.status === 'completed').length,
+          cancelled: transformed.filter(apt => apt.status === 'cancelled').length,
+          'no-show': transformed.filter(apt => apt.status === 'no-show').length,
+        };
+        console.log('📊 Status breakdown on refresh:', statusBreakdown);
+        
         setAllMonthAppointments(transformed);
       } else {
         setAllMonthAppointments([]);
@@ -423,13 +470,34 @@ export default function AppointmentsTab({
 
     const matchesDate = selectedDate ? apt.date === selectedDate : true;
 
-    if (appointmentFilterBy === 'all') return matchesSearch && matchesDate;
-    if (appointmentFilterBy === 'scheduled') return matchesSearch && matchesDate && apt.status === 'scheduled';
-    if (appointmentFilterBy === 'completed') return matchesSearch && matchesDate && apt.status === 'completed';
-    if (appointmentFilterBy === 'cancelled') return matchesSearch && matchesDate && apt.status === 'cancelled';
-    if (appointmentFilterBy === 'no-show') return matchesSearch && matchesDate && apt.status === 'no-show';
+    // Apply status filter
+    if (appointmentFilterBy === 'all') {
+      return matchesSearch && matchesDate;
+    } else if (appointmentFilterBy === 'scheduled') {
+      return matchesSearch && matchesDate && apt.status === 'scheduled';
+    } else if (appointmentFilterBy === 'completed') {
+      return matchesSearch && matchesDate && apt.status === 'completed';
+    } else if (appointmentFilterBy === 'cancelled') {
+      return matchesSearch && matchesDate && apt.status === 'cancelled';
+    } else if (appointmentFilterBy === 'no-show') {
+      return matchesSearch && matchesDate && apt.status === 'no-show';
+    }
     return matchesSearch && matchesDate;
   });
+
+  // DEBUG: Log appointments to display and filter details
+  console.log('\n=== FILTER DEBUG ===');
+  console.log(`Filter: "${appointmentFilterBy}"`);
+  console.log(`Total appointments available: ${appointmentsToDisplay.length}`);
+  if (appointmentsToDisplay.length > 0) {
+    console.log('Appointments to display:');
+    appointmentsToDisplay.forEach((apt, idx) => {
+      console.log(`  [${idx}] ${apt.name} - status: "${apt.status}"`);
+    });
+  }
+  console.log(`After filtering: ${filteredAppointments.length} appointments match filter`);
+  console.log('===================\n');
+
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#f0f8ff" }}>
