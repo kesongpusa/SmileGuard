@@ -427,73 +427,77 @@ export default function AppointmentsTab({
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
-          <View style={{ flexDirection: 'row', gap: 8, justifyContent: 'flex-start', flexWrap: 'wrap', marginBottom: 12 }}>
-            <Text style={{ fontSize: 12, fontWeight: 'bold', color: '#666', alignSelf: 'center' }}>Filter:</Text>
-            <TouchableOpacity
-              onPress={() => setAppointmentFilterBy('all')}
-              style={{
-                paddingHorizontal: 12,
-                paddingVertical: 6,
-                borderRadius: 16,
-                backgroundColor: appointmentFilterBy === 'all' ? '#0b7fab' : '#e0e0e0',
-                borderWidth: 1,
-                borderColor: appointmentFilterBy === 'all' ? '#0b7fab' : '#ccc',
-              }}
-            >
-              <Text style={{ fontSize: 12, color: appointmentFilterBy === 'all' ? '#fff' : '#333', fontWeight: '500' }}>All</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => setAppointmentFilterBy('scheduled')}
-              style={{
-                paddingHorizontal: 12,
-                paddingVertical: 6,
-                borderRadius: 16,
-                backgroundColor: appointmentFilterBy === 'scheduled' ? '#0b7fab' : '#e0e0e0',
-                borderWidth: 1,
-                borderColor: appointmentFilterBy === 'scheduled' ? '#0b7fab' : '#ccc',
-              }}
-            >
-              <Text style={{ fontSize: 12, color: appointmentFilterBy === 'scheduled' ? '#fff' : '#333', fontWeight: '500' }}>Pending</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => setAppointmentFilterBy('completed')}
-              style={{
-                paddingHorizontal: 12,
-                paddingVertical: 6,
-                borderRadius: 16,
-                backgroundColor: appointmentFilterBy === 'completed' ? '#0b7fab' : '#e0e0e0',
-                borderWidth: 1,
-                borderColor: appointmentFilterBy === 'completed' ? '#0b7fab' : '#ccc',
-              }}
-            >
-              <Text style={{ fontSize: 12, color: appointmentFilterBy === 'completed' ? '#fff' : '#333', fontWeight: '500' }}>Completed</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => setAppointmentFilterBy('cancelled')}
-              style={{
-                paddingHorizontal: 12,
-                paddingVertical: 6,
-                borderRadius: 16,
-                backgroundColor: appointmentFilterBy === 'cancelled' ? '#0b7fab' : '#e0e0e0',
-                borderWidth: 1,
-                borderColor: appointmentFilterBy === 'cancelled' ? '#0b7fab' : '#ccc',
-              }}
-            >
-              <Text style={{ fontSize: 12, color: appointmentFilterBy === 'cancelled' ? '#fff' : '#333', fontWeight: '500' }}>Cancelled</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => setAppointmentFilterBy('no-show')}
-              style={{
-                paddingHorizontal: 12,
-                paddingVertical: 6,
-                borderRadius: 16,
-                backgroundColor: appointmentFilterBy === 'no-show' ? '#0b7fab' : '#e0e0e0',
-                borderWidth: 1,
-                borderColor: appointmentFilterBy === 'no-show' ? '#0b7fab' : '#ccc',
-              }}
-            >
-              <Text style={{ fontSize: 12, color: appointmentFilterBy === 'no-show' ? '#fff' : '#333', fontWeight: '500' }}>No-show</Text>
-            </TouchableOpacity>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12, gap: 8 }}>
+            <Text style={{ fontSize: 12, fontWeight: 'bold', color: '#666' }}>Filter:</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flex: 1 }}>
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                <TouchableOpacity
+                  onPress={() => setAppointmentFilterBy('all')}
+                  style={{
+                    paddingHorizontal: 12,
+                    paddingVertical: 6,
+                    borderRadius: 16,
+                    backgroundColor: appointmentFilterBy === 'all' ? '#0b7fab' : '#e0e0e0',
+                    borderWidth: 1,
+                    borderColor: appointmentFilterBy === 'all' ? '#0b7fab' : '#ccc',
+                  }}
+                >
+                  <Text style={{ fontSize: 12, color: appointmentFilterBy === 'all' ? '#fff' : '#333', fontWeight: '500' }}>All</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => setAppointmentFilterBy('scheduled')}
+                  style={{
+                    paddingHorizontal: 12,
+                    paddingVertical: 6,
+                    borderRadius: 16,
+                    backgroundColor: appointmentFilterBy === 'scheduled' ? '#0b7fab' : '#e0e0e0',
+                    borderWidth: 1,
+                    borderColor: appointmentFilterBy === 'scheduled' ? '#0b7fab' : '#ccc',
+                  }}
+                >
+                  <Text style={{ fontSize: 12, color: appointmentFilterBy === 'scheduled' ? '#fff' : '#333', fontWeight: '500' }}>Pending</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => setAppointmentFilterBy('completed')}
+                  style={{
+                    paddingHorizontal: 12,
+                    paddingVertical: 6,
+                    borderRadius: 16,
+                    backgroundColor: appointmentFilterBy === 'completed' ? '#0b7fab' : '#e0e0e0',
+                    borderWidth: 1,
+                    borderColor: appointmentFilterBy === 'completed' ? '#0b7fab' : '#ccc',
+                  }}
+                >
+                  <Text style={{ fontSize: 12, color: appointmentFilterBy === 'completed' ? '#fff' : '#333', fontWeight: '500' }}>Completed</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => setAppointmentFilterBy('cancelled')}
+                  style={{
+                    paddingHorizontal: 12,
+                    paddingVertical: 6,
+                    borderRadius: 16,
+                    backgroundColor: appointmentFilterBy === 'cancelled' ? '#0b7fab' : '#e0e0e0',
+                    borderWidth: 1,
+                    borderColor: appointmentFilterBy === 'cancelled' ? '#0b7fab' : '#ccc',
+                  }}
+                >
+                  <Text style={{ fontSize: 12, color: appointmentFilterBy === 'cancelled' ? '#fff' : '#333', fontWeight: '500' }}>Cancelled</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => setAppointmentFilterBy('no-show')}
+                  style={{
+                    paddingHorizontal: 12,
+                    paddingVertical: 6,
+                    borderRadius: 16,
+                    backgroundColor: appointmentFilterBy === 'no-show' ? '#0b7fab' : '#e0e0e0',
+                    borderWidth: 1,
+                    borderColor: appointmentFilterBy === 'no-show' ? '#0b7fab' : '#ccc',
+                  }}
+                >
+                  <Text style={{ fontSize: 12, color: appointmentFilterBy === 'no-show' ? '#fff' : '#333', fontWeight: '500' }}>No-show</Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
           </View>
 
           {/* Calendar View */}
@@ -595,12 +599,11 @@ export default function AppointmentsTab({
               </Text>
             </View>
           )}
-          {loading && (
+          {loading ? (
             <Text style={{ textAlign: 'center', color: '#0b7fab', marginTop: 20, fontSize: 14, fontWeight: 'bold' }}>
               ⏳ Loading appointments...
             </Text>
-          )}
-          {filteredAppointments.length === 0 ? (
+          ) : filteredAppointments.length === 0 ? (
             <Text style={{ textAlign: 'center', color: '#999', marginTop: 20, fontSize: 14 }}>
               {searchQuery ? `No appointments found matching "${searchQuery}"` : selectedDate ? 'No appointments on this date' : 'No appointments found'}
             </Text>
