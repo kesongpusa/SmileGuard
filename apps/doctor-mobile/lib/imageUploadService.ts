@@ -79,10 +79,8 @@ export const uploadProfileImage = async (
 ): Promise<string> => {
   try {
     console.log("📤 Starting image upload...");
-
-    // Read the image file
-    const response = await fetch(image.uri);
-    const blob = await response.blob();
+    console.log("📋 Image URI:", image.uri);
+    console.log("📋 Image type:", image.type);
 
     // Create unique filename
     const timestamp = Date.now();
@@ -90,31 +88,51 @@ export const uploadProfileImage = async (
 
     console.log("📁 Uploading to path:", filename);
 
-    // Upload to Supabase Storage
-    const { data, error } = await supabase.storage
-      .from("doctor-pictures")
-      .upload(filename, blob, {
-        cacheControl: "3600",
-        upsert: true,
-      });
+    // Fetch the image as blob from the file URI
+    try {
+      console.log("🔄 Fetching image from URI...");
+      
+      const response = await fetch(image.uri);
+      if (!response.ok) {
+        throw new Error(`Fetch failed with status ${response.status}`);
+      }
+      
+      const blob = await response.blob();
+      console.log("✅ Blob created, size:", blob.size, "bytes");
 
-    if (error) {
-      throw new Error(`Upload failed: ${error.message}`);
+      // Upload to Supabase Storage
+      console.log("📤 Uploading blob to Supabase...");
+      const { data, error } = await supabase.storage
+        .from("doctor-pictures")
+        .upload(filename, blob, {
+          cacheControl: "3600",
+          upsert: true,
+          contentType: image.type || "image/jpeg",
+        });
+
+      if (error) {
+        console.error("❌ Supabase upload error:", error);
+        throw new Error(`Upload failed: ${error.message}`);
+      }
+
+      console.log("✅ Upload successful:", data);
+
+      // Get public URL
+      console.log("🔗 Getting public URL...");
+      const { data: publicUrl } = supabase.storage
+        .from("doctor-pictures")
+        .getPublicUrl(filename);
+
+      if (!publicUrl?.publicUrl) {
+        throw new Error("Failed to get public URL");
+      }
+
+      console.log("🔗 Public URL:", publicUrl.publicUrl);
+      return publicUrl.publicUrl;
+    } catch (fetchError) {
+      console.error("❌ Failed to fetch or upload image:", fetchError);
+      throw new Error(`Failed to upload image: ${fetchError}`);
     }
-
-    console.log("✅ Upload successful:", data);
-
-    // Get public URL
-    const { data: publicUrl } = supabase.storage
-      .from("doctor-pictures")
-      .getPublicUrl(filename);
-
-    if (!publicUrl?.publicUrl) {
-      throw new Error("Failed to get public URL");
-    }
-
-    console.log("🔗 Public URL:", publicUrl.publicUrl);
-    return publicUrl.publicUrl;
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Image upload failed";

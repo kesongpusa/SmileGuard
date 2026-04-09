@@ -17,6 +17,8 @@ import {
   Switch,
   Image,
   Modal,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { Doctor, EMPTY_DOCTOR, PasswordCheck } from "@smileguard/shared-types";
 import PasswordStrengthMeter from "../ui/password-strength-meter";
@@ -59,6 +61,13 @@ export default function DoctorRegistrationForm({
   // ── Specialization Dropdown
   const [showSpecializationDropdown, setShowSpecializationDropdown] =
     useState(false);
+
+  // ── Selected Image Data
+  const [selectedImage, setSelectedImage] = useState<{
+    uri: string;
+    name: string;
+    type: string;
+  } | null>(null);
 
   const specializations = [
     "General Dentistry",
@@ -164,8 +173,9 @@ export default function DoctorRegistrationForm({
         return;
       }
 
-      // Show selected image preview
-      setSelectedImageUri(image.uri);
+      // Store full image data for later upload
+      setSelectedImage(image);
+      setSelectedImageUri(image.uri); // For preview
 
       // Note: We'll upload after user confirms registration
       console.log("✅ Image selected, will upload during registration");
@@ -187,7 +197,6 @@ export default function DoctorRegistrationForm({
 
   const isStep2Valid = () => {
     return (
-      credentials.name.trim() !== "" &&
       credentials.email.trim() !== "" &&
       isValidEmail(credentials.email) &&
       passwordStrong &&
@@ -211,7 +220,7 @@ export default function DoctorRegistrationForm({
       // Register the doctor account
       const formData = {
         service: "General",
-        name: credentials.name,
+        name: doctorData.clinic_name || "Doctor", // Use doctor name from Step 1
         email: credentials.email,
         password: credentials.password,
         medicalIntake: {},
@@ -229,14 +238,11 @@ export default function DoctorRegistrationForm({
 
         // Upload image if provided
         let profileImageUrl = doctorData.profile_picture_url || "";
-        if (selectedImageUri) {
+        if (selectedImage) {
           try {
             console.log("📤 Uploading image...");
-            const image = await pickImage();
-            if (image) {
-              profileImageUrl = await uploadProfileImage(image, data.user.id);
-              console.log("✅ Image uploaded successfully");
-            }
+            profileImageUrl = await uploadProfileImage(selectedImage, data.user.id);
+            console.log("✅ Image uploaded successfully:", profileImageUrl);
           } catch (imageError) {
             console.warn(
               "⚠️  Image upload failed, continuing without image:",
@@ -259,7 +265,7 @@ export default function DoctorRegistrationForm({
 
         console.log("✅ Doctor profile created successfully!");
         onSuccess({
-          name: credentials.name,
+          name: doctorData.clinic_name || "Doctor",
           email: credentials.email,
           role: "doctor",
         });
@@ -279,11 +285,17 @@ export default function DoctorRegistrationForm({
   // ────────────────────────────────────────────────────────────────
 
   return (
-    <ScrollView
+    <KeyboardAvoidingView
+      enabled={step === 2}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={styles.container}
-      contentContainerStyle={styles.scrollContent}
-      keyboardShouldPersistTaps="handled"
     >
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        scrollEnabled={true}
+      >
       {/* ━━━━━━━━━━━━ STEP 1: DOCTOR DETAILS ━━━━━━━━━━━━ */}
       {step === 1 && (
         <View style={styles.stepContent}>
@@ -451,14 +463,6 @@ export default function DoctorRegistrationForm({
             onChangeText={(text) => updateDoctorData("clinic_phone", text)}
           />
 
-          <TextInput
-            style={styles.input}
-            placeholder="Doctor Email"
-            keyboardType="email-address"
-            value={doctorData.clinic_email || ""}
-            onChangeText={(text) => updateDoctorData("clinic_email", text)}
-          />
-
           {/* Section: Availability */}
           <Text style={styles.sectionHeader}>Availability</Text>
 
@@ -500,15 +504,18 @@ export default function DoctorRegistrationForm({
               <ActivityIndicator color="#0b7fab" size="small" />
             ) : (
               <Text style={styles.secondaryBtnText}>
-                {selectedImageUri ? "📷 Change Photo" : "📷 Choose Photo"}
+                {selectedImage ? "📷 Change Photo" : "📷 Choose Photo"}
               </Text>
             )}
           </TouchableOpacity>
 
-          {selectedImageUri && (
+          {selectedImage && (
             <TouchableOpacity
               style={[styles.btn, { marginTop: 6, backgroundColor: "#fee2e2" }]}
-              onPress={() => setSelectedImageUri(null)}
+              onPress={() => {
+                setSelectedImage(null);
+                setSelectedImageUri(null);
+              }}
               disabled={loading}
             >
               <Text style={{ color: "#dc2626", fontSize: 14, fontWeight: "600" }}>
@@ -551,16 +558,6 @@ export default function DoctorRegistrationForm({
         <View style={styles.stepContent}>
           <Text style={styles.h2}>🔐 Create Your Account</Text>
           <Text style={styles.p}>Step 2 of 2: Set up your login credentials</Text>
-
-          {/* Full Name */}
-          <TextInput
-            style={styles.input}
-            placeholder="Full Name *"
-            value={credentials.name}
-            onChangeText={(text) =>
-              setCredentials((prev) => ({ ...prev, name: text }))
-            }
-          />
 
           {/* Email */}
           <TextInput
@@ -684,7 +681,8 @@ export default function DoctorRegistrationForm({
           </TouchableOpacity>
         </View>
       )}
-    </ScrollView>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -698,7 +696,10 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
   },
   scrollContent: {
-    justifyContent: "center",
+    flexGrow: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    paddingBottom: 60,
   },
   stepContent: {
     borderColor: "#2bf1ff7d",
@@ -706,6 +707,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 14,
     backgroundColor: "#f8fbff",
+    marginBottom: 20,
   },
   h2: {
     fontSize: 18,

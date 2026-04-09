@@ -59,7 +59,7 @@ add npm install @react-navigation/drawer
 📌 ##FOR DENTIST##
 
 - [x] Sign In / Sign Up
-- [] Dentist Profile Setup
+- [x] Dentist Profile Setup
 - [] Clinic Set up
 - [] Set Appointment Rules
     - [] Appointment Page

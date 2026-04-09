@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,9 +7,12 @@ import {
   Modal,
   Switch,
   Animated,
+  ActivityIndicator,
 } from 'react-native';
-import { CurrentUser } from '@smileguard/shared-types';
-import DoctorProfileEdit from '../settings/ClinicProfileViewing';
+import { CurrentUser, Doctor, EMPTY_DOCTOR } from '@smileguard/shared-types';
+import DoctorProfileView from '../settings/ClinicProfileViewing';
+import { useAuth } from '../../hooks/useAuth';
+import { getDoctorProfile } from '../../lib/doctorService';
 
 interface SettingsTabProps {
   user: CurrentUser;
@@ -30,6 +33,9 @@ interface AppSettings {
 export default function SettingsTab({ user, onUpdateProfile, styles }: SettingsTabProps) {
   const [editingProfile, setEditingProfile] = useState(false);
   const [currentUser, setCurrentUser] = useState<CurrentUser>(user);
+  const [doctorData, setDoctorData] = useState<Doctor>(EMPTY_DOCTOR);
+  const [loadingDoctor, setLoadingDoctor] = useState(false);
+  const { currentUser: authUser } = useAuth();
   const [appSettings, setAppSettings] = useState<AppSettings>({
     appointmentReminders: true,
     newPatientRequests: true,
@@ -37,13 +43,62 @@ export default function SettingsTab({ user, onUpdateProfile, styles }: SettingsT
     fontSize: 'medium',
   });
 
-  const handleSaveProfile = (updatedUser: Partial<CurrentUser>) => {
-    const newUser = { ...currentUser, ...updatedUser };
-    setCurrentUser(newUser);
-    if (onUpdateProfile) {
-      onUpdateProfile(updatedUser);
+  // Fetch doctor profile when modal opens
+  useEffect(() => {
+    if (editingProfile && authUser?.id) {
+      fetchDoctorData();
     }
-    setEditingProfile(false);
+  }, [editingProfile, authUser?.id]);
+
+  const fetchDoctorData = async () => {
+    try {
+      setLoadingDoctor(true);
+      const userId = authUser?.id;
+      console.log('=== FETCH DOCTOR DEBUG ===');
+      console.log('authUser:', authUser);
+      console.log('User ID:', userId);
+      
+      if (!userId) {
+        console.warn('❌ No user ID available');
+        setDoctorData(EMPTY_DOCTOR);
+        setLoadingDoctor(false);
+        return;
+      }
+
+      // Add timeout to prevent hanging
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Fetch timeout after 5s')), 5000)
+      );
+
+      const doctor = await Promise.race([
+        getDoctorProfile(userId),
+        timeoutPromise,
+      ]) as Doctor | null;
+
+      console.log('✅ Doctor profile result:', doctor);
+      if (doctor) {
+        setDoctorData(doctor);
+      } else {
+        console.warn('⚠️ No doctor profile found, using empty doctor');
+        setDoctorData(EMPTY_DOCTOR);
+      }
+    } catch (error) {
+      console.error('❌ Failed to fetch doctor profile:', error);
+      setDoctorData(EMPTY_DOCTOR);
+    } finally {
+      setLoadingDoctor(false);
+    }
+  };
+
+  const handleSaveProfile = async (updatedDoctor: Partial<Doctor>) => {
+    try {
+      // Update local state
+      const newDoctor = { ...doctorData, ...updatedDoctor };
+      setDoctorData(newDoctor);
+      setEditingProfile(false);
+    } catch (error) {
+      console.error('Failed to save profile:', error);
+    }
   };
 
   const toggleNotificationSetting = (setting: 'appointmentReminders' | 'newPatientRequests') => {
@@ -242,12 +297,17 @@ export default function SettingsTab({ user, onUpdateProfile, styles }: SettingsT
         animationType="slide"
         onRequestClose={() => setEditingProfile(false)}
       >
-        <DoctorProfileEdit
-          user={currentUser}
-          onSave={handleSaveProfile}
-          onCancel={() => setEditingProfile(false)}
-          styles={styles}
-        />
+        {loadingDoctor ? (
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+            <ActivityIndicator size="large" color="#0b7fab" />
+          </View>
+        ) : (
+          <DoctorProfileView
+            doctor={doctorData}
+            onSave={handleSaveProfile}
+            onClose={() => setEditingProfile(false)}
+          />
+        )}
       </Modal>
     </>
   );
