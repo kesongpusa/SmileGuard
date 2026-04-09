@@ -8,11 +8,13 @@ import {
   Switch,
   Animated,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { CurrentUser, Doctor, EMPTY_DOCTOR } from '@smileguard/shared-types';
-import DoctorProfileView from '../settings/ClinicProfileViewing';
+import DoctorProfileView from '../settings/DoctorProfileViewing';
+import ClinicSetup from '../settings/ClinicSetup';
 import { useAuth } from '../../hooks/useAuth';
-import { getDoctorProfile } from '../../lib/doctorService';
+import { getDoctorProfile, updateDoctorProfile } from '../../lib/doctorService';
 
 interface SettingsTabProps {
   user: CurrentUser;
@@ -32,6 +34,7 @@ interface AppSettings {
 
 export default function SettingsTab({ user, onUpdateProfile, styles }: SettingsTabProps) {
   const [editingProfile, setEditingProfile] = useState(false);
+  const [editingClinic, setEditingClinic] = useState(false);
   const [currentUser, setCurrentUser] = useState<CurrentUser>(user);
   const [doctorData, setDoctorData] = useState<Doctor>(EMPTY_DOCTOR);
   const [loadingDoctor, setLoadingDoctor] = useState(false);
@@ -92,12 +95,37 @@ export default function SettingsTab({ user, onUpdateProfile, styles }: SettingsT
 
   const handleSaveProfile = async (updatedDoctor: Partial<Doctor>) => {
     try {
-      // Update local state
-      const newDoctor = { ...doctorData, ...updatedDoctor };
-      setDoctorData(newDoctor);
-      setEditingProfile(false);
+      console.log('💾 Saving doctor profile updates:', updatedDoctor);
+      
+      if (!doctorData.id) {
+        console.error('❌ Doctor ID is not available');
+        return;
+      }
+
+      // Call Supabase to update the doctor profile
+      const result = await updateDoctorProfile(doctorData.id, updatedDoctor);
+      
+      if (result) {
+        console.log('✅ Profile updated in Supabase:', result);
+        // Update local state with the returned data
+        setDoctorData(result);
+        // Don't close modal - keep it open for more edits
+      } else {
+        console.error('❌ Failed to update profile in Supabase');
+      }
     } catch (error) {
-      console.error('Failed to save profile:', error);
+      console.error('❌ Failed to save profile:', error);
+    }
+  };
+
+  const handleSaveClinic = async (clinicData: any) => {
+    try {
+      console.log('💾 Saving clinic setup:', clinicData);
+      // TODO: Implement clinic data saving to Supabase
+      // For now, just log the data
+      console.log('✅ Clinic data ready to save:', clinicData);
+    } catch (error) {
+      console.error('❌ Failed to save clinic data:', error);
     }
   };
 
@@ -123,170 +151,208 @@ export default function SettingsTab({ user, onUpdateProfile, styles }: SettingsT
   };
 
   const fontSizeValues = { small: 12, medium: 14, large: 16 };
+  const ACCENT_COLOR = '#0b7fab';
+  const LIGHT_BG = '#f0f8ff';
+  const CARD_BG = '#fff';
+  const TEXT_PRIMARY = '#333';
+  const TEXT_SECONDARY = '#666';
+  const BORDER_COLOR = '#ddd';
 
   return (
     <>
-      <ScrollView contentContainerStyle={styles.scrollContent} style={styles.scrollViewContent}>
-        <View style={styles.container}>
-          <Text style={[styles.header, { marginBottom: 30 }]}>Settings</Text>
+      <ScrollView contentContainerStyle={{ paddingBottom: 40 }} style={{ backgroundColor: LIGHT_BG, flex: 1 }}>
+        <View style={{ paddingHorizontal: 16 }}>
+          {/* Header */}
+          <View style={{ marginBottom: 32, marginTop: 24, paddingBottom: 20, borderBottomWidth: 2, borderBottomColor: BORDER_COLOR }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+              <Image
+                source={require('../../assets/images/icon/settings.png')}
+                style={{ width: 28, height: 28, resizeMode: 'contain', tintColor: ACCENT_COLOR }}
+              />
+              <Text style={{ fontSize: 32, fontWeight: '800', color: ACCENT_COLOR }}>Settings</Text>
+            </View>
+            <Text style={{ fontSize: 14, color: TEXT_SECONDARY }}>Manage clinic and appointments</Text>
+          </View>
 
           {/* Profile Section */}
-          <View style={styles.settingsSection}>
-            <Text style={styles.settingsSectionTitle}>👤 Profile</Text>
+          <View style={{ marginBottom: 28 }}>
+            <Text style={{ fontSize: 13, fontWeight: '700', color: TEXT_SECONDARY, marginBottom: 14, textTransform: 'uppercase', letterSpacing: 0.5 }}>Profile Settings</Text>
             <TouchableOpacity
-              style={styles.settingsCard}
+              style={{ backgroundColor: CARD_BG, borderRadius: 12, padding: 16, marginBottom: 10, borderLeftWidth: 3, borderLeftColor: ACCENT_COLOR, borderWidth: 1, borderTopColor: BORDER_COLOR, borderRightColor: BORDER_COLOR, borderBottomColor: BORDER_COLOR }}
               onPress={() => setEditingProfile(true)}
               activeOpacity={0.7}
             >
-              <View style={styles.settingsItem}>
-                <Text style={styles.settingsLabel}>Edit Dentist Profile Setup</Text>
-                <Text style={{ fontSize: 16, color: '#0b7fab', fontWeight: 'bold' }}>→</Text>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <View>
+                  <Text style={{ fontSize: 15, fontWeight: '600', color: TEXT_PRIMARY, marginBottom: 4 }}>Doctor Profile</Text>
+                  <Text style={{ fontSize: 12, color: TEXT_SECONDARY }}>Name, specialty, credentials</Text>
+                </View>
+                <Image
+                  source={require('../../assets/images/icon/open.png')}
+                  style={{ width: 20, height: 20, resizeMode: 'contain', tintColor: ACCENT_COLOR }}
+                />
               </View>
             </TouchableOpacity>
           </View>
 
-          {/* Notification Settings */}
-          <View style={styles.settingsSection}>
-            <Text style={styles.settingsSectionTitle}>🔔 Notifications</Text>
-            <View style={styles.settingsCard}>
-              <View style={styles.settingsToggleItem}>
-                <Text style={styles.settingsLabel}>Appointment Reminders</Text>
+          {/* Clinic Settings Section */}
+          <View style={{ marginBottom: 28 }}>
+            <Text style={{ fontSize: 13, fontWeight: '700', color: TEXT_SECONDARY, marginBottom: 14, textTransform: 'uppercase', letterSpacing: 0.5 }}>Clinic</Text>
+            <TouchableOpacity
+              style={{ backgroundColor: CARD_BG, borderRadius: 12, padding: 16, borderLeftWidth: 3, borderLeftColor: ACCENT_COLOR, borderWidth: 1, borderTopColor: BORDER_COLOR, borderRightColor: BORDER_COLOR, borderBottomColor: BORDER_COLOR }}
+              onPress={() => setEditingClinic(true)}
+              activeOpacity={0.7}
+            >
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <View>
+                  <Text style={{ fontSize: 15, fontWeight: '600', color: TEXT_PRIMARY, marginBottom: 4 }}>Clinic Setup</Text>
+                  <Text style={{ fontSize: 12, color: TEXT_SECONDARY }}>Hours, location, services</Text>
+                </View>
+                <Image
+                  source={require('../../assets/images/icon/open.png')}
+                  style={{ width: 20, height: 20, resizeMode: 'contain', tintColor: ACCENT_COLOR }}
+                />
+              </View>
+            </TouchableOpacity>
+          </View>
+
+          {/* Notifications Section */}
+          <View style={{ marginBottom: 28 }}>
+            <Text style={{ fontSize: 13, fontWeight: '700', color: TEXT_SECONDARY, marginBottom: 14, textTransform: 'uppercase', letterSpacing: 0.5 }}>Notifications</Text>
+            
+            <View style={{ backgroundColor: CARD_BG, borderRadius: 12, padding: 0, overflow: 'hidden', borderWidth: 1, borderColor: BORDER_COLOR }}>
+              <View style={{ borderBottomWidth: 1, borderBottomColor: BORDER_COLOR, paddingHorizontal: 16, paddingVertical: 14, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <View>
+                  <Text style={{ fontSize: 15, fontWeight: '600', color: TEXT_PRIMARY }}>Appointment Reminders</Text>
+                  <Text style={{ fontSize: 12, color: TEXT_SECONDARY, marginTop: 4 }}>Get notified before appointments</Text>
+                </View>
                 <Switch
                   value={appSettings.appointmentReminders}
                   onValueChange={() => toggleNotificationSetting('appointmentReminders')}
-                  trackColor={{ false: '#ccc', true: '#11c' }}
-                  thumbColor={appSettings.appointmentReminders ? '#0b7fab' : '#f4f3f4'}
+                  trackColor={{ false: '#e0e0e0', true: '#B3E5FC' }}
+                  thumbColor={appSettings.appointmentReminders ? ACCENT_COLOR : '#ccc'}
                 />
               </View>
-            </View>
-            <View style={styles.settingsCard}>
-              <View style={styles.settingsToggleItem}>
-                <Text style={styles.settingsLabel}>New Patient Requests</Text>
+              <View style={{ paddingHorizontal: 16, paddingVertical: 14, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <View>
+                  <Text style={{ fontSize: 15, fontWeight: '600', color: TEXT_PRIMARY }}>New Patient Requests</Text>
+                  <Text style={{ fontSize: 12, color: TEXT_SECONDARY, marginTop: 4 }}>Get notifications for new requests</Text>
+                </View>
                 <Switch
                   value={appSettings.newPatientRequests}
                   onValueChange={() => toggleNotificationSetting('newPatientRequests')}
-                  trackColor={{ false: '#ccc', true: '#0b7fab' }}
-                  thumbColor={appSettings.newPatientRequests ? '#0b7fab' : '#f4f3f4'}
+                  trackColor={{ false: '#e0e0e0', true: '#B3E5FC' }}
+                  thumbColor={appSettings.newPatientRequests ? ACCENT_COLOR : '#ccc'}
                 />
               </View>
             </View>
           </View>
 
-          {/* Appearance Settings */}
-          <View style={styles.settingsSection}>
-            <Text style={styles.settingsSectionTitle}>🎨 Appearance</Text>
+          {/* Appointment Categories */}
+          <View style={{ marginBottom: 28 }}>
+            <Text style={{ fontSize: 13, fontWeight: '700', color: TEXT_SECONDARY, marginBottom: 14, textTransform: 'uppercase', letterSpacing: 0.5 }}>Services</Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+              {['Cleaning', 'Root Canal', 'Extraction', 'Orthodontics', 'Whitening', 'Implants'].map((service) => (
+                <TouchableOpacity
+                  key={service}
+                  style={{
+                    backgroundColor: '#f5f5f5',
+                    paddingHorizontal: 14,
+                    paddingVertical: 8,
+                    borderRadius: 8,
+                    borderWidth: 1,
+                    borderColor: BORDER_COLOR,
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={{ fontSize: 13, fontWeight: '500', color: TEXT_PRIMARY }}>{service}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          {/* Font Size Selection */}
+          <View style={{ marginBottom: 28 }}>
+            <Text style={{ fontSize: 13, fontWeight: '700', color: TEXT_SECONDARY, marginBottom: 14, textTransform: 'uppercase', letterSpacing: 0.5 }}>Text Size</Text>
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              {(['small', 'medium', 'large'] as const).map((sizeOption) => (
+                <TouchableOpacity
+                  key={sizeOption}
+                  style={{
+                    flex: 1,
+                    paddingVertical: 12,
+                    borderRadius: 10,
+                    borderWidth: 2,
+                    borderColor: appSettings.fontSize === sizeOption ? ACCENT_COLOR : '#e0e0e0',
+                    backgroundColor: appSettings.fontSize === sizeOption ? '#EBF8FF' : '#f9f9f9',
+                    alignItems: 'center',
+                  }}
+                  activeOpacity={0.7}
+                  onPress={() => updateFontSize(sizeOption)}
+                >
+                  <Text
+                    style={{
+                      fontSize: fontSizeValues[sizeOption],
+                      fontWeight: '700',
+                      color: appSettings.fontSize === sizeOption ? ACCENT_COLOR : TEXT_SECONDARY,
+                      textTransform: 'capitalize',
+                    }}
+                  >
+                    {sizeOption[0].toUpperCase()}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          {/* About & Help Section */}
+          <View style={{ marginBottom: 28 }}>
+            <Text style={{ fontSize: 13, fontWeight: '700', color: TEXT_SECONDARY, marginBottom: 14, textTransform: 'uppercase', letterSpacing: 0.5 }}>Support</Text>
             
-            {/* Theme Selection */}
-            <View style={styles.settingsCard}>
-              <View style={{ paddingVertical: 12, paddingHorizontal: 16 }}>
-                <Text style={styles.settingsLabel}>Theme</Text>
-                <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
-                  {(['light', 'dark'] as const).map((themeOption) => (
-                    <TouchableOpacity
-                      key={themeOption}
-                      style={{
-                        flex: 1,
-                        paddingVertical: 10,
-                        paddingHorizontal: 12,
-                        borderRadius: 8,
-                        borderWidth: 2,
-                        borderColor: appSettings.theme === themeOption ? '#0b7fab' : '#ddd',
-                        backgroundColor: appSettings.theme === themeOption ? '#e3f2fd' : '#f5f5f5',
-                        alignItems: 'center',
-                      }}
-                      onPress={() => updateTheme(themeOption)}
-                    >
-                      <Text
-                        style={{
-                          fontSize: 14,
-                          fontWeight: '600',
-                          color: appSettings.theme === themeOption ? '#0b7fab' : '#666',
-                          textTransform: 'capitalize',
-                        }}
-                      >
-                        {themeOption}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
+            <TouchableOpacity
+              style={{ backgroundColor: CARD_BG, borderRadius: 12, padding: 14, marginBottom: 8, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderWidth: 1, borderColor: BORDER_COLOR }}
+              activeOpacity={0.7}
+            >
+              <View>
+                <Text style={{ fontSize: 14, fontWeight: '600', color: TEXT_PRIMARY }}>Privacy Policy</Text>
               </View>
-            </View>
+              <Image
+                source={require('../../assets/images/icon/open.png')}
+                style={{ width: 18, height: 18, resizeMode: 'contain', tintColor: ACCENT_COLOR }}
+              />
+            </TouchableOpacity>
 
-            {/* Font Size Selection */}
-            <View style={styles.settingsCard}>
-              <View style={{ paddingVertical: 12, paddingHorizontal: 16 }}>
-                <Text style={styles.settingsLabel}>Font Size</Text>
-                <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
-                  {(['small', 'medium', 'large'] as const).map((sizeOption) => (
-                    <TouchableOpacity
-                      key={sizeOption}
-                      style={{
-                        flex: 1,
-                        paddingVertical: 10,
-                        paddingHorizontal: 12,
-                        borderRadius: 8,
-                        borderWidth: 2,
-                        borderColor: appSettings.fontSize === sizeOption ? '#0b7fab' : '#ddd',
-                        backgroundColor: appSettings.fontSize === sizeOption ? '#e3f2fd' : '#f5f5f5',
-                        alignItems: 'center',
-                      }}
-                      onPress={() => updateFontSize(sizeOption)}
-                    >
-                      <Text
-                        style={{
-                          fontSize: fontSizeValues[sizeOption],
-                          fontWeight: '600',
-                          color: appSettings.fontSize === sizeOption ? '#0b7fab' : '#666',
-                          textTransform: 'capitalize',
-                        }}
-                      >
-                        {sizeOption}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
+            <TouchableOpacity
+              style={{ backgroundColor: CARD_BG, borderRadius: 12, padding: 14, marginBottom: 8, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderWidth: 1, borderColor: BORDER_COLOR }}
+              activeOpacity={0.7}
+            >
+              <View>
+                <Text style={{ fontSize: 14, fontWeight: '600', color: TEXT_PRIMARY }}>Terms & Conditions</Text>
               </View>
-            </View>
+              <Image
+                source={require('../../assets/images/icon/open.png')}
+                style={{ width: 18, height: 18, resizeMode: 'contain', tintColor: ACCENT_COLOR }}
+              />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ backgroundColor: CARD_BG, borderRadius: 12, padding: 14, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderWidth: 1, borderColor: BORDER_COLOR }}
+              activeOpacity={0.7}
+            >
+              <View>
+                <Text style={{ fontSize: 14, fontWeight: '600', color: TEXT_PRIMARY }}>Contact Support</Text>
+              </View>
+              <Image
+                source={require('../../assets/images/icon/open.png')}
+                style={{ width: 18, height: 18, resizeMode: 'contain', tintColor: ACCENT_COLOR }}
+              />
+            </TouchableOpacity>
           </View>
 
-          {/* About Section */}
-          <View style={styles.settingsSection}>
-            <Text style={styles.settingsSectionTitle}>ℹ️ About</Text>
-            <View style={styles.settingsCard}>
-              <View style={styles.settingsItem}>
-                <Text style={styles.settingsLabel}>App Version</Text>
-                <Text style={styles.settingsValue}>1.0.0</Text>
-              </View>
-            </View>
-            <View style={styles.settingsCard}>
-              <TouchableOpacity style={styles.settingsItem}>
-                <Text style={styles.settingsLabel}>Privacy Policy</Text>
-                <Text style={{ fontSize: 16, color: '#0b7fab', fontWeight: 'bold' }}>→</Text>
-              </TouchableOpacity>
-            </View>
-            <View style={styles.settingsCard}>
-              <TouchableOpacity style={styles.settingsItem}>
-                <Text style={styles.settingsLabel}>Terms & Conditions</Text>
-                <Text style={{ fontSize: 16, color: '#0b7fab', fontWeight: 'bold' }}>→</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* Help Section */}
-          <View style={styles.settingsSection}>
-            <Text style={styles.settingsSectionTitle}>❓ Help & Support</Text>
-            <View style={styles.settingsCard}>
-              <TouchableOpacity style={styles.settingsItem}>
-                <Text style={styles.settingsLabel}>Contact Support</Text>
-                <Text style={{ fontSize: 16, color: '#0b7fab', fontWeight: 'bold' }}>→</Text>
-              </TouchableOpacity>
-            </View>
-            <View style={styles.settingsCard}>
-              <TouchableOpacity style={styles.settingsItem}>
-                <Text style={styles.settingsLabel}>FAQ</Text>
-                <Text style={{ fontSize: 16, color: '#0b7fab', fontWeight: 'bold' }}>→</Text>
-              </TouchableOpacity>
-            </View>
+          {/* Version & Footer */}
+          <View style={{ alignItems: 'center', marginTop: 16, paddingTop: 16, borderTopWidth: 1, borderTopColor: BORDER_COLOR }}>
+            <Text style={{ fontSize: 12, color: TEXT_SECONDARY }}>SmileGuard v1.0.0</Text>
+            <Text style={{ fontSize: 11, color: TEXT_SECONDARY, marginTop: 6 }}>© 2024 Your Clinic. All rights reserved.</Text>
           </View>
         </View>
       </ScrollView>
@@ -308,6 +374,18 @@ export default function SettingsTab({ user, onUpdateProfile, styles }: SettingsT
             onClose={() => setEditingProfile(false)}
           />
         )}
+      </Modal>
+
+      {/* Clinic Setup Modal */}
+      <Modal
+        visible={editingClinic}
+        animationType="slide"
+        onRequestClose={() => setEditingClinic(false)}
+      >
+        <ClinicSetup
+          onSave={handleSaveClinic}
+          onClose={() => setEditingClinic(false)}
+        />
       </Modal>
     </>
   );

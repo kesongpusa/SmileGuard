@@ -279,16 +279,16 @@ export default function DoctorProfileEdit({
               height: 45,
             },
           ]}
-          disabled={!doctorData.is_available}
+          disabled={false}
           onPress={() => {}}
         >
           <Text
             style={{
               fontSize: 13,
-              color: doctorData.availability_status ? "#333" : "#999",
+              color: "#333",
             }}
           >
-            Status: {doctorData.availability_status || "unavailable"}
+            Available
           </Text>
         </TouchableOpacity>
       </View>

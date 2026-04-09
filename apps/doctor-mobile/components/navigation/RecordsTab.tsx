@@ -201,7 +201,10 @@ export default function RecordsTab({
                     <Text style={{ fontSize: 12, color: '#666' }}>{patient.email}</Text>
                     <Text style={{ fontSize: 12, color: '#0b7fab', fontWeight: '500' }}>Patient</Text>
                   </View>
-                  <Text style={{ fontSize: 12, color: '#0b7fab', fontWeight: 'bold' }}>→</Text>
+                  <Image
+                    source={require('../../assets/images/icon/open.png')}
+                    style={{ width: 18, height: 18, resizeMode: 'contain' }}
+                  />
                 </View>
               </TouchableOpacity>
             ))

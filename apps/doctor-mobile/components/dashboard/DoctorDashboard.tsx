@@ -398,8 +398,15 @@ export default function DoctorDashboard({ user, onLogout }: DoctorDashboardProps
                     <View style={styles.column}>
                       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                         <Text style={styles.subHeader}>Today's Appointments ({todayAppointments.length}):</Text>
-                        <TouchableOpacity onPress={() => setActiveTab('appointments')}>
+                        <TouchableOpacity 
+                          onPress={() => setActiveTab('appointments')}
+                          style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}
+                        >
                           <Text style={{ color: '#0b7fab', fontWeight: 'bold', fontSize: 12 }}>See all</Text>
+                          <Image
+                            source={require('../../assets/images/icon/open.png')}
+                            style={{ width: 16, height: 16, resizeMode: 'contain' }}
+                          />
                         </TouchableOpacity>
                       </View>
                       {todayAppointments.length === 0 ? (
@@ -426,8 +433,15 @@ export default function DoctorDashboard({ user, onLogout }: DoctorDashboardProps
                       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                         <Text style={styles.subHeader}>Details:</Text>
                         {selectedPatient && (
-                          <TouchableOpacity onPress={handleEditPatient}>
+                          <TouchableOpacity 
+                            onPress={handleEditPatient}
+                            style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}
+                          >
                             <Text style={{ color: '#0b7fab', fontWeight: 'bold', fontSize: 12 }}>Edit</Text>
+                            <Image
+                              source={require('../../assets/images/icon/open.png')}
+                              style={{ width: 16, height: 16, resizeMode: 'contain' }}
+                            />
                           </TouchableOpacity>
                         )}
                       </View>
@@ -482,7 +496,10 @@ export default function DoctorDashboard({ user, onLogout }: DoctorDashboardProps
                               borderRadius: 8,
                               borderWidth: 1,
                               borderColor: expandPatientDetails ? '#0b7fab' : '#ddd',
+                              flexDirection: 'row',
+                              justifyContent: 'center',
                               alignItems: 'center',
+                              gap: 8,
                             }}
                             onPress={() => setExpandPatientDetails(!expandPatientDetails)}
                           >
@@ -491,8 +508,17 @@ export default function DoctorDashboard({ user, onLogout }: DoctorDashboardProps
                               fontWeight: '600',
                               color: expandPatientDetails ? '#0b7fab' : '#666',
                             }}>
-                              {expandPatientDetails ? '◀ Show Less' : '▶ See More'}
+                              {expandPatientDetails ? 'Show Less' : 'See More'}
                             </Text>
+                            <Image
+                              source={require('../../assets/images/icon/open.png')}
+                              style={{
+                                width: 16,
+                                height: 16,
+                                resizeMode: 'contain',
+                                transform: [{ rotate: expandPatientDetails ? '180deg' : '0deg' }]
+                              }}
+                            />
                           </TouchableOpacity>
 
                           {/* Contact Information - Expanded */}
@@ -544,8 +570,16 @@ export default function DoctorDashboard({ user, onLogout }: DoctorDashboardProps
                         onRequestClose={handleCancelEdit}
                       >
                         <SafeAreaView style={{ flex: 1, backgroundColor: "#f9f9f9" }}>
-                          <ScrollView style={{ padding: 20, paddingTop: 10 }} contentContainerStyle={{ paddingBottom: 20 }}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: '#e0e0e0' }}>
+                            <TouchableOpacity onPress={handleCancelEdit} style={{ marginRight: 12 }}>
+                              <Image
+                                source={require('../../assets/images/icon/back.png')}
+                                style={{ width: 24, height: 24, resizeMode: 'contain' }}
+                              />
+                            </TouchableOpacity>
                             <Text style={styles.editHeader}>Edit Appointment</Text>
+                          </View>
+                          <ScrollView style={{ padding: 20 }} contentContainerStyle={{ paddingBottom: 20 }}>
                             {editedPatient && (
                               <View>
                                 <View style={styles.editField}>
@@ -650,14 +684,21 @@ export default function DoctorDashboard({ user, onLogout }: DoctorDashboardProps
                                 paddingVertical: 12, 
                                 paddingHorizontal: 16,
                                 alignItems: 'center', 
+                                justifyContent: 'center',
+                                flexDirection: 'row',
+                                gap: 8,
                                 marginTop: 10,
                                 backgroundColor: '#f0f0f0',
                                 borderRadius: 8,
                               }}
                             >
                               <Text style={{ color: '#0b7fab', fontWeight: 'bold', fontSize: 14 }}>
-                                See more patients ({patients.length - 3} more) →
+                                See more patients ({patients.length - 3} more)
                               </Text>
+                              <Image
+                                source={require('../../assets/images/icon/open.png')}
+                                style={{ width: 16, height: 16, resizeMode: 'contain' }}
+                              />
                             </TouchableOpacity>
                           )}
                         </>
@@ -740,7 +781,10 @@ export default function DoctorDashboard({ user, onLogout }: DoctorDashboardProps
                 style={[styles.navItem, activeTab === 'dashboard' && styles.navItemActive]}
                 onPress={() => setActiveTab('dashboard')}
               >
-                <Text style={styles.navIcon}>🏠</Text>
+                <Image
+                  source={require('../../assets/images/icon/dashboard.png')}
+                  style={styles.navIcon}
+                />
                 {sidebarOpen && <Text style={styles.navLabel}>Dashboard</Text>}
               </TouchableOpacity>
 
@@ -748,7 +792,10 @@ export default function DoctorDashboard({ user, onLogout }: DoctorDashboardProps
                 style={[styles.navItem, activeTab === 'records' && styles.navItemActive]}
                 onPress={() => setActiveTab('records')}
               >
-                <Text style={styles.navIcon}>📋</Text>
+                <Image
+                  source={require('../../assets/images/icon/records.png')}
+                  style={styles.navIcon}
+                />
                 {sidebarOpen && <Text style={styles.navLabel}>Records</Text>}
               </TouchableOpacity>
 
@@ -756,7 +803,10 @@ export default function DoctorDashboard({ user, onLogout }: DoctorDashboardProps
                 style={[styles.navItem, activeTab === 'appointments' && styles.navItemActive]}
                 onPress={() => setActiveTab('appointments')}
               >
-                <Text style={styles.navIcon}>📅</Text>
+                <Image
+                  source={require('../../assets/images/icon/appointment.png')}
+                  style={styles.navIcon}
+                />
                 {sidebarOpen && <Text style={styles.navLabel}>Appointments</Text>}
               </TouchableOpacity>
 
@@ -764,7 +814,10 @@ export default function DoctorDashboard({ user, onLogout }: DoctorDashboardProps
                 style={[styles.navItem, activeTab === 'settings' && styles.navItemActive]}
                 onPress={() => setActiveTab('settings')}
               >
-                <Text style={styles.navIcon}>⚙️</Text>
+                <Image
+                  source={require('../../assets/images/icon/settings.png')}
+                  style={styles.navIcon}
+                />
                 {sidebarOpen && <Text style={styles.navLabel}>Settings</Text>}
               </TouchableOpacity>
             </View>
@@ -778,7 +831,10 @@ export default function DoctorDashboard({ user, onLogout }: DoctorDashboardProps
                 ]);
               }}
             >
-              <Text style={styles.sidebarLogoutIcon}>🚪</Text>
+              <Image
+                source={require('../../assets/images/icon/logout.png')}
+                style={styles.navIcon}
+              />
               {sidebarOpen && <Text style={styles.sidebarLogoutText}>Logout</Text>}
             </TouchableOpacity>
           </Animated.View>
@@ -916,8 +972,10 @@ const styles = StyleSheet.create({
   },
 
   navIcon: {
-    fontSize: 20,
+    width: 24,
+    height: 24,
     marginRight: 12,
+    resizeMode: 'contain',
   },
 
   navLabel: {
@@ -934,11 +992,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#ef4444',
     borderRadius: 8,
     marginTop: 16,
-  },
-
-  sidebarLogoutIcon: {
-    fontSize: 18,
-    marginRight: 8,
   },
 
   sidebarLogoutText: {
@@ -1031,7 +1084,6 @@ const styles = StyleSheet.create({
   editHeader: {
     fontSize: 18,
     fontWeight: "bold",
-    marginBottom: 20,
     color: "#333",
   },
 

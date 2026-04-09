@@ -1,13 +1,17 @@
 import { Doctor } from "@smileguard/shared-types";
 import { useState } from "react";
 import {
+  ActivityIndicator,
+  Alert,
   Image,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   TouchableOpacity,
   View
 } from "react-native";
+import { pickImage, uploadProfileImage } from "../../lib/imageUploadService";
 import DoctorProfileEdit from "./DoctorProfileEdit";
 
 interface DoctorProfileViewProps {
@@ -23,6 +27,102 @@ export default function DoctorProfileView({
 }: DoctorProfileViewProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [tempIsAvailable, setTempIsAvailable] = useState(doctor.is_available);
+
+  const hasAvailabilityChanged = tempIsAvailable !== doctor.is_available;
+
+  const handleChangeProfilePicture = async () => {
+    try {
+      console.log('📷 Opening image picker...');
+      const selectedImage = await pickImage();
+
+      if (!selectedImage) {
+        console.log('User cancelled image picker');
+        return;
+      }
+
+      Alert.alert(
+        "Confirm Picture Change",
+        "Do you want to update your profile picture?",
+        [
+          {
+            text: "Cancel",
+            onPress: () => console.log('User cancelled picture update'),
+            style: "cancel",
+          },
+          {
+            text: "Update",
+            onPress: async () => {
+              setUploadingImage(true);
+              try {
+                console.log('📤 Uploading new profile picture...');
+                const newImageUrl = await uploadProfileImage(
+                  selectedImage,
+                  doctor.user_id
+                );
+
+                console.log('✅ Image uploaded:', newImageUrl);
+                // Save the new image URL to the database
+                await onSave({ profile_picture_url: newImageUrl });
+              } catch (error) {
+                console.error('❌ Failed to upload image:', error);
+                Alert.alert(
+                  "Upload Failed",
+                  "Failed to upload profile picture. Please try again."
+                );
+              } finally {
+                setUploadingImage(false);
+              }
+            },
+            style: "default",
+          },
+        ]
+      );
+    } catch (error) {
+      console.error('❌ Error in handleChangeProfilePicture:', error);
+      Alert.alert(
+        "Error",
+        "Failed to select image. Please try again."
+      );
+    }
+  };
+
+  const handleAvailabilityToggle = (newValue: boolean) => {
+    const oldValue = doctor.is_available;
+    setTempIsAvailable(newValue);
+
+    if (newValue !== oldValue) {
+      Alert.alert(
+        "Update Availability",
+        `Are you sure you want to change your availability status to ${
+          newValue ? "Available" : "Not Available"
+        }?`,
+        [
+          {
+            text: "Cancel",
+            onPress: () => {
+              // Revert the UI state
+              setTempIsAvailable(oldValue);
+            },
+            style: "cancel",
+          },
+          {
+            text: "Save",
+            onPress: async () => {
+              setLoading(true);
+              try {
+                await onSave({ is_available: newValue });
+              } finally {
+                setLoading(false);
+              }
+            },
+            style: "default",
+          },
+        ]
+      );
+    }
+  };
 
   const handleSave = async (updatedDoctor: Partial<Doctor>) => {
     setLoading(true);
@@ -73,16 +173,32 @@ export default function DoctorProfileView({
       {/* Profile Card */}
       <View style={styles.profileCard}>
         {/* Profile Picture */}
-        {doctor.profile_picture_url ? (
-          <Image
-            source={{ uri: doctor.profile_picture_url }}
-            style={styles.profileImage}
-          />
-        ) : (
-          <View style={styles.profileImagePlaceholder}>
-            <Text style={styles.profileImagePlaceholderText}>👨‍⚕️</Text>
-          </View>
-        )}
+        <TouchableOpacity
+          onPress={handleChangeProfilePicture}
+          disabled={uploadingImage}
+          style={styles.profileImageContainer}
+        >
+          {doctor.profile_picture_url ? (
+            <Image
+              source={{ uri: doctor.profile_picture_url }}
+              style={styles.profileImage}
+            />
+          ) : (
+            <View style={styles.profileImagePlaceholder}>
+              <Text style={styles.profileImagePlaceholderText}>👨‍⚕️</Text>
+            </View>
+          )}
+          {uploadingImage && (
+            <View style={styles.uploadingOverlay}>
+              <ActivityIndicator size="large" color="#fff" />
+            </View>
+          )}
+          {!uploadingImage && (
+            <View style={styles.cameraIconContainer}>
+              <Text style={styles.cameraIcon}>📷</Text>
+            </View>
+          )}
+        </TouchableOpacity>
 
         {/* Basic Info */}
         <View style={styles.basicInfo}>
@@ -154,26 +270,31 @@ export default function DoctorProfileView({
 
           <View style={styles.infoRow}>
             <Text style={styles.label}>Status:</Text>
-            <View style={styles.statusBadge}>
+            <View style={styles.availabilityToggleContainer}>
+              <Switch
+                value={tempIsAvailable}
+                onValueChange={handleAvailabilityToggle}
+                disabled={loading}
+                trackColor={{ false: "#ef4444", true: "#22c55e" }}
+                thumbColor={tempIsAvailable ? "#22c55e" : "#ef4444"}
+              />
               <Text
                 style={[
-                  styles.statusText,
+                  styles.availabilityText,
                   {
-                    color: doctor.is_available ? "#22c55e" : "#ef4444",
+                    color: tempIsAvailable ? "#22c55e" : "#ef4444",
                   },
                 ]}
               >
-                {doctor.is_available ? "✓ Available" : "✗ Not Available"}
+                {tempIsAvailable ? "✓ Available" : "✗ Not Available"}
               </Text>
+              {hasAvailabilityChanged && (
+                <Text style={styles.changedIndicator}>●</Text>
+              )}
             </View>
           </View>
 
-          <View style={styles.infoRow}>
-            <Text style={styles.label}>Availability Status:</Text>
-            <Text style={styles.value}>
-              {doctor.availability_status || "unavailable"}
-            </Text>
-          </View>
+
         </View>
 
         {/* Divider */}
@@ -277,11 +398,15 @@ const styles = StyleSheet.create({
     borderColor: "#2bf1ff7d",
     borderWidth: 1,
   },
+  profileImageContainer: {
+    alignSelf: "center",
+    marginBottom: 12,
+    position: "relative",
+  },
   profileImage: {
     width: 100,
     height: 100,
     borderRadius: 50,
-    marginBottom: 12,
     alignSelf: "center",
   },
   profileImagePlaceholder: {
@@ -291,11 +416,37 @@ const styles = StyleSheet.create({
     backgroundColor: "#f0f0f0",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 12,
     alignSelf: "center",
   },
   profileImagePlaceholderText: {
     fontSize: 40,
+  },
+  cameraIconContainer: {
+    position: "absolute",
+    bottom: 0,
+    right: 0,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#0b7fab",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: "#fff",
+  },
+  cameraIcon: {
+    fontSize: 16,
+  },
+  uploadingOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   basicInfo: {
     alignItems: "center",
@@ -363,6 +514,22 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 12,
     fontWeight: "600",
+  },
+  availabilityToggleContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flex: 1,
+    justifyContent: "flex-end",
+  },
+  availabilityText: {
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  changedIndicator: {
+    fontSize: 18,
+    color: "#f59e0b",
+    marginLeft: 4,
   },
   floatingEditBtn: {
     position: "absolute",

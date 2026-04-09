@@ -557,8 +557,17 @@ export default function AppointmentsTab({
             }}
           >
             <Text style={{ fontSize: 14, color: '#fff', fontWeight: '600' }}>
-              {loading ? '⟳ Refreshing...' : '⟳ Refresh'}
+              {loading ? 'Refreshing...' : 'Refresh'}
             </Text>
+            <Image
+              source={require('../../assets/images/icon/refresh.png')}
+              style={{
+                width: 18,
+                height: 18,
+                resizeMode: 'contain',
+                opacity: loading ? 0.6 : 1,
+              }}
+            />
           </TouchableOpacity>
           
           <TextInput

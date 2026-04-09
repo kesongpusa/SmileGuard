@@ -221,16 +221,15 @@ export async function updateDoctorProfile(
 /**
  * Update doctor availability status
  * @param doctorId - The doctor record ID
- * @param status - New availability status
+ * @param isAvailable - Whether doctor is available
  * @returns Updated doctor or null
  */
 export async function updateAvailabilityStatus(
   doctorId: string,
-  status: "available" | "on-leave" | "on-vacation" | "unavailable"
+  isAvailable: boolean
 ): Promise<Doctor | null> {
   return updateDoctorProfile(doctorId, {
-    availability_status: status,
-    is_available: status === "available",
+    is_available: isAvailable,
   });
 }
 
