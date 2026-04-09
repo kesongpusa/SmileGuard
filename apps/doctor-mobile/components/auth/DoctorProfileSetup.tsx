@@ -137,7 +137,7 @@ export default function DoctorRegistrationForm({
     return (
       isValidLicenseNumber(doctorData.license_number) &&
       doctorData.specialization.trim() !== "" &&
-      doctorData.clinic_name?.trim() !== ""
+      doctorData.doctor_name?.trim() !== ""
     );
   };
 
@@ -149,7 +149,7 @@ export default function DoctorRegistrationForm({
         errorMsg = "Medical License Number must be 5-7 characters with both letters and numbers (e.g., ABC123)";
       } else if (doctorData.specialization.trim() === "") {
         errorMsg = "Please enter a specialization.";
-      } else if (doctorData.clinic_name?.trim() === "") {
+      } else if (doctorData.doctor_name?.trim() === "") {
         errorMsg = "Please enter a doctor name.";
       }
       
@@ -220,7 +220,7 @@ export default function DoctorRegistrationForm({
       // Register the doctor account
       const formData = {
         service: "General",
-        name: doctorData.clinic_name || "Doctor", // Use doctor name from Step 1
+        name: doctorData.doctor_name || "Doctor", // Use doctor name from Step 1
         email: credentials.email,
         password: credentials.password,
         medicalIntake: {},
@@ -265,7 +265,7 @@ export default function DoctorRegistrationForm({
 
         console.log("✅ Doctor profile created successfully!");
         onSuccess({
-          name: doctorData.clinic_name || "Doctor",
+          name: doctorData.doctor_name || "Doctor",
           email: credentials.email,
           role: "doctor",
         });
@@ -451,16 +451,16 @@ export default function DoctorRegistrationForm({
           <TextInput
             style={styles.input}
             placeholder="Doctor Name *"
-            value={doctorData.clinic_name || ""}
-            onChangeText={(text) => updateDoctorData("clinic_name", text)}
+            value={doctorData.doctor_name || ""}
+            onChangeText={(text) => updateDoctorData("doctor_name", text)}
           />
 
           <TextInput
             style={styles.input}
             placeholder="Doctor Phone"
             keyboardType="phone-pad"
-            value={doctorData.clinic_phone || ""}
-            onChangeText={(text) => updateDoctorData("clinic_phone", text)}
+            value={doctorData.doctor_phone || ""}
+            onChangeText={(text) => updateDoctorData("doctor_phone", text)}
           />
 
           {/* Section: Availability */}

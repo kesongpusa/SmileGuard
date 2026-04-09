@@ -122,17 +122,13 @@ export interface Doctor {
   license_number: string;
   specialization: string;
   bio?: string;
-  clinic_name?: string;
-  clinic_phone?: string;
-  clinic_email?: string;
+  doctor_name?: string;
+  doctor_phone?: string;
   office_hours?: OfficeHours;
   years_of_experience?: number;
-  qualifications?: string[];
   is_available?: boolean;
   availability_status?: "available" | "on-leave" | "on-vacation" | "unavailable";
   profile_picture_url?: string;
-  is_verified?: boolean;
-  verification_date?: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -142,9 +138,8 @@ export const EMPTY_DOCTOR: Doctor = {
   license_number: "",
   specialization: "",
   bio: "",
-  clinic_name: "",
-  clinic_phone: "",
-  clinic_email: "",
+  doctor_name: "",
+  doctor_phone: "",
   office_hours: {
     monday: { open: "09:00", close: "17:00" },
     tuesday: { open: "09:00", close: "17:00" },
@@ -155,7 +150,6 @@ export const EMPTY_DOCTOR: Doctor = {
     sunday: { isClosed: true },
   },
   years_of_experience: 0,
-  qualifications: [],
   is_available: true,
   availability_status: "available",
   profile_picture_url: "",

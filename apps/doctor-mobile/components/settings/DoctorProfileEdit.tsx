@@ -64,9 +64,9 @@ export default function DoctorProfileEdit({
       doctorData.license_number &&
       isValidLicenseNumber(doctorData.license_number) &&
       doctorData.specialization &&
-      doctorData.clinic_name?.trim() &&
-      (!doctorData.clinic_email ||
-        isValidEmail(doctorData.clinic_email))
+      doctorData.doctor_name?.trim() &&
+      (!doctorData.doctor_phone ||
+        doctorData.doctor_phone?.length > 0)
     );
   };
 
@@ -247,24 +247,16 @@ export default function DoctorProfileEdit({
         <TextInput
           style={styles.input}
           placeholder="Doctor Name *"
-          value={doctorData.clinic_name || ""}
-          onChangeText={(text) => updateDoctorData("clinic_name", text)}
+          value={doctorData.doctor_name || ""}
+          onChangeText={(text) => updateDoctorData("doctor_name", text)}
         />
 
         <TextInput
           style={styles.input}
           placeholder="Doctor Phone"
           keyboardType="phone-pad"
-          value={doctorData.clinic_phone || ""}
-          onChangeText={(text) => updateDoctorData("clinic_phone", text)}
-        />
-
-        <TextInput
-          style={styles.input}
-          placeholder="Doctor Email"
-          keyboardType="email-address"
-          value={doctorData.clinic_email || ""}
-          onChangeText={(text) => updateDoctorData("clinic_email", text)}
+          value={doctorData.doctor_phone || ""}
+          onChangeText={(text) => updateDoctorData("doctor_phone", text)}
         />
 
         {/* Section: Availability */}

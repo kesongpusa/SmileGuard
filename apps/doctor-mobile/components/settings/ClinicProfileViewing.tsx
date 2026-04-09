@@ -86,7 +86,7 @@ export default function DoctorProfileView({
 
         {/* Basic Info */}
         <View style={styles.basicInfo}>
-          <Text style={styles.doctorName}>{doctor.clinic_name || "N/A"}</Text>
+          <Text style={styles.doctorName}>{doctor.doctor_name || "N/A"}</Text>
           <Text style={styles.specialization}>
             {doctor.specialization || "Specialization: N/A"}
           </Text>
@@ -129,17 +129,12 @@ export default function DoctorProfileView({
 
           <View style={styles.infoRow}>
             <Text style={styles.label}>Name:</Text>
-            <Text style={styles.value}>{doctor.clinic_name || "N/A"}</Text>
+            <Text style={styles.value}>{doctor.doctor_name || "N/A"}</Text>
           </View>
 
           <View style={styles.infoRow}>
             <Text style={styles.label}>Phone:</Text>
-            <Text style={styles.value}>{doctor.clinic_phone || "N/A"}</Text>
-          </View>
-
-          <View style={styles.infoRow}>
-            <Text style={styles.label}>Email:</Text>
-            <Text style={styles.value}>{doctor.clinic_email || "N/A"}</Text>
+            <Text style={styles.value}>{doctor.doctor_phone || "N/A"}</Text>
           </View>
 
           {doctor.bio && (
@@ -188,27 +183,20 @@ export default function DoctorProfileView({
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>ℹ️ Additional Information</Text>
 
-          <View style={styles.infoRow}>
-            <Text style={styles.label}>Verified:</Text>
-            <Text style={styles.value}>
-              {doctor.is_verified ? "✓ Yes" : "✗ No"}
-            </Text>
-          </View>
-
-          {doctor.verification_date && (
-            <View style={styles.infoRow}>
-              <Text style={styles.label}>Verified On:</Text>
-              <Text style={styles.value}>
-                {new Date(doctor.verification_date).toLocaleDateString()}
-              </Text>
-            </View>
-          )}
-
           {doctor.created_at && (
             <View style={styles.infoRow}>
               <Text style={styles.label}>Profile Created:</Text>
               <Text style={styles.value}>
                 {new Date(doctor.created_at).toLocaleDateString()}
+              </Text>
+            </View>
+          )}
+
+          {doctor.updated_at && (
+            <View style={styles.infoRow}>
+              <Text style={styles.label}>Last Updated:</Text>
+              <Text style={styles.value}>
+                {new Date(doctor.updated_at).toLocaleDateString()}
               </Text>
             </View>
           )}
